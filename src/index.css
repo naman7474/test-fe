@@ -1,13 +1,112 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-beauty-black text-white font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-beauty-charcoal;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-beauty-gray-700 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-beauty-gray-600;
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer components {
+  /* Floating panel style */
+  .floating-panel {
+    @apply bg-beauty-charcoal/80 backdrop-blur-md rounded-2xl border border-beauty-gray-800 shadow-2xl;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply px-6 py-3 bg-beauty-accent text-beauty-black font-semibold rounded-full 
+           transition-all duration-300 hover:bg-beauty-accent-hover hover:shadow-lg 
+           hover:shadow-beauty-accent/20 active:scale-95;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply px-6 py-3 bg-transparent text-beauty-accent font-semibold rounded-full 
+           border-2 border-beauty-accent transition-all duration-300 
+           hover:bg-beauty-accent hover:text-beauty-black;
+  }
+
+  /* Form input */
+  .form-input {
+    @apply w-full px-4 py-3 bg-beauty-dark border border-beauty-gray-800 rounded-lg
+           text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent
+           focus:ring-1 focus:ring-beauty-accent transition-all duration-200;
+  }
+
+  /* Form label */
+  .form-label {
+    @apply block text-sm font-medium text-beauty-gray-300 mb-2;
+  }
+
+  /* Product card */
+  .product-card {
+    @apply floating-panel p-4 hover:border-beauty-accent/50 transition-all duration-300
+           hover:transform hover:scale-[1.02] cursor-pointer;
+  }
+
+  /* Loading animation */
+  .loading-spinner {
+    @apply inline-block w-8 h-8 border-2 border-beauty-gray-700 border-t-beauty-accent 
+           rounded-full animate-spin;
+  }
+
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-gradient-to-r from-beauty-accent to-beauty-secondary bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  /* Custom animations */
+  @keyframes scan-line {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+
+  .animate-scan {
+    animation: scan-line 2s ease-in-out infinite;
+  }
+
+  /* Glow effect */
+  .glow {
+    @apply shadow-lg shadow-beauty-accent/30;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 }
