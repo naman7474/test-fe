@@ -2,170 +2,60 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store';
-import ProductDetailModal from '../components/results/ProductDetailModal';
-import { ProductRecommendation, AnalysisResult } from '../types';
-
-// Mock data for demonstration
-const mockAnalysisResult: AnalysisResult = {
-  faceAnalysis: {
-    detectedIssues: ['Mild acne on T-zone', 'Dark spots on cheeks', 'Under-eye circles'],
-    skinTone: 'Medium with warm undertones',
-    faceShape: 'Oval',
-    confidence: 0.92,
-  },
-  recommendations: [
-    {
-      product: {
-        id: '1',
-        name: 'Clarifying Serum',
-        brand: 'SkinScience',
-        category: 'skincare',
-        subcategory: 'serum',
-        imageUrl: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400',
-        price: 45.00,
-        size: '30ml',
-        ingredients: ['Salicylic Acid', 'Niacinamide', 'Tea Tree Extract'],
-        keyIngredients: ['2% Salicylic Acid', 'Niacinamide'],
-        benefits: ['Reduces acne', 'Minimizes pores', 'Controls oil'],
-        targetConcerns: ['acne', 'oily skin', 'large pores'],
-        applicationArea: ['forehead', 'nose', 'chin'],
-        usage: {
-          frequency: 'Daily',
-          time: 'evening',
-          amount: '2-3 drops',
-          instructions: 'Apply to clean skin before moisturizer',
-        },
-      },
-      score: 95,
-      reason: 'Targets acne with 2% salicylic acid, perfect for your oily T-zone',
-      applicationPoints: [],
-      priority: 1,
-    },
-    {
-      product: {
-        id: '2',
-        name: 'Brightening Vitamin C Serum',
-        brand: 'GlowLab',
-        category: 'skincare',
-        subcategory: 'serum',
-        imageUrl: 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=400',
-        price: 55.00,
-        size: '30ml',
-        ingredients: ['Vitamin C', 'Vitamin E', 'Ferulic Acid'],
-        keyIngredients: ['20% Vitamin C', 'Vitamin E'],
-        benefits: ['Brightens dark spots', 'Evens skin tone', 'Antioxidant protection'],
-        targetConcerns: ['dark spots', 'dull skin', 'uneven tone'],
-        applicationArea: ['cheeks', 'forehead'],
-        usage: {
-          frequency: 'Daily',
-          time: 'morning',
-          amount: '3-4 drops',
-          instructions: 'Apply before sunscreen',
-        },
-      },
-      score: 92,
-      reason: 'High-potency vitamin C to fade your dark spots and brighten overall complexion',
-      applicationPoints: [],
-      priority: 2,
-    },
-    {
-      product: {
-        id: '3',
-        name: 'Lightweight SPF 50 Gel',
-        brand: 'SunSafe',
-        category: 'skincare',
-        subcategory: 'sunscreen',
-        imageUrl: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400',
-        price: 28.00,
-        size: '50ml',
-        ingredients: ['Zinc Oxide', 'Titanium Dioxide', 'Hyaluronic Acid'],
-        keyIngredients: ['SPF 50', 'Zinc Oxide'],
-        benefits: ['Broad spectrum protection', 'Non-greasy', 'Hydrating'],
-        targetConcerns: ['sun protection', 'oily skin'],
-        applicationArea: ['full face'],
-        usage: {
-          frequency: 'Daily',
-          time: 'morning',
-          amount: 'Two finger lengths',
-          instructions: 'Apply as last step of morning routine',
-        },
-      },
-      score: 90,
-      reason: 'Essential for preventing further dark spots, gel formula perfect for oily skin',
-      applicationPoints: [],
-      priority: 3,
-    },
-    {
-      product: {
-        id: '4',
-        name: 'Eye Brightening Cream',
-        brand: 'LuxeSkin',
-        category: 'skincare',
-        subcategory: 'eye cream',
-        imageUrl: 'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=400',
-        price: 65.00,
-        size: '15ml',
-        ingredients: ['Caffeine', 'Vitamin K', 'Peptides'],
-        keyIngredients: ['5% Caffeine', 'Peptides'],
-        benefits: ['Reduces dark circles', 'Firms skin', 'Hydrates'],
-        targetConcerns: ['dark circles', 'puffiness'],
-        applicationArea: ['under eyes'],
-        usage: {
-          frequency: 'Daily',
-          time: 'both',
-          amount: 'Rice grain size',
-          instructions: 'Gently pat around eye area',
-        },
-      },
-      score: 88,
-      reason: 'Caffeine and peptides to brighten and firm your under-eye area',
-      applicationPoints: [],
-      priority: 4,
-    },
-  ],
-  routineSuggestion: {
-    morning: [],
-    evening: [],
-  },
-  personalizedAdvice: [
-    'Focus on consistent use of salicylic acid for acne control',
-    'Vitamin C in the morning will help fade dark spots over time',
-    'Never skip sunscreen to prevent new pigmentation',
-  ],
-};
+import { ProductRecommendation } from '../types';
 
 const Results: React.FC = () => {
   const navigate = useNavigate();
-  const { userProfile, photoPreview, facialKeypoints, selectedProduct, setSelectedProduct } = useStore();
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const { 
+    userProfile, 
+    photoPreview, 
+    analysisResult, 
+    selectedProduct, 
+    setSelectedProduct,
+    productDetailOpen,
+    setProductDetailOpen 
+  } = useStore();
+  
   const [recommendations, setRecommendations] = useState<ProductRecommendation[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'morning' | 'evening'>('all');
 
   useEffect(() => {
-    if (!photoPreview) {
+    if (!userProfile.analysisComplete && !analysisResult) {
       navigate('/');
       return;
     }
 
-    // Simulate loading analysis results
-    setTimeout(() => {
-      setRecommendations(mockAnalysisResult.recommendations);
-    }, 1000);
-  }, [photoPreview, navigate]);
+    // Use analysis result if available
+    if (analysisResult?.recommendations) {
+      setRecommendations(analysisResult.recommendations);
+    }
+  }, [userProfile, analysisResult, navigate]);
 
   const handleProductClick = (product: any) => {
     setSelectedProduct(product);
-    setShowDetailModal(true);
+    setProductDetailOpen(true);
   };
 
-  const productPositions = [
-    { top: '15%', left: '10%' }, // Forehead area
-    { top: '35%', right: '8%' },  // Right cheek
-    { top: '35%', left: '8%' },   // Left cheek  
-    { top: '65%', left: '50%', transform: 'translateX(-50%)' }, // Under eye/chin area
-  ];
+  const handleStartOver = () => {
+    // Reset store and navigate to landing
+    useStore.getState().resetUserProfile();
+    navigate('/');
+  };
 
-  if (!photoPreview) {
-    return null;
+  const filteredRecommendations = recommendations.filter(rec => {
+    if (activeTab === 'all') return true;
+    return rec.product.usage.time === activeTab || rec.product.usage.time === 'both';
+  });
+
+  if (!analysisResult) {
+    return (
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-beauty-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-beauty-gray-400">Loading your results...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -176,13 +66,14 @@ const Results: React.FC = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-xl font-display font-bold text-gradient">BeautyAI</h1>
             <div className="flex items-center gap-4">
-              <button className="text-beauty-gray-400 hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+              <button
+                onClick={handleStartOver}
+                className="text-beauty-gray-400 hover:text-white transition-colors text-sm font-medium"
+              >
+                Start Over
               </button>
               <button 
-                onClick={() => navigate('/')}
+                onClick={handleStartOver}
                 className="text-beauty-gray-400 hover:text-white transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,171 +87,259 @@ const Results: React.FC = () => {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Welcome message */}
+        {/* Welcome & Analysis Summary */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-display font-bold text-white mb-4">
-            ✨ Your Routine is Ready{userProfile.name ? `, ${userProfile.name}` : ''}!
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">
+            ✨ Your Routine is Ready!
           </h2>
-          <p className="text-lg text-beauty-gray-400 max-w-2xl mx-auto mb-2">
-            {mockAnalysisResult.faceAnalysis.detectedIssues.join(', ')}. 
-            Here's your personalized regimen to tackle them:
+          <p className="text-xl text-beauty-gray-300 mb-8">
+            Based on your {photoPreview ? 'photo and ' : ''}profile, here's what we recommend
           </p>
-          <p className="text-sm text-beauty-accent">
-            👆 Tap the floating products around your photo to learn more
-          </p>
+
+          {/* Analysis Summary */}
+          {analysisResult.faceAnalysis && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-beauty-gray-900/50 rounded-xl p-6 mb-8 max-w-4xl mx-auto"
+            >
+              <h3 className="text-lg font-semibold text-white mb-4">Your Analysis Summary</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                <div>
+                  <h4 className="text-beauty-accent font-medium mb-2">Detected Characteristics</h4>
+                  <ul className="space-y-1 text-beauty-gray-300 text-sm">
+                    <li>• Skin tone: {analysisResult.faceAnalysis.skinTone}</li>
+                    <li>• Face shape: {analysisResult.faceAnalysis.faceShape}</li>
+                    <li>• Analysis confidence: {Math.round(analysisResult.faceAnalysis.confidence * 100)}%</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-beauty-secondary font-medium mb-2">Areas of Focus</h4>
+                  <ul className="space-y-1 text-beauty-gray-300 text-sm">
+                    {analysisResult.faceAnalysis.detectedIssues.map((issue, index) => (
+                      <li key={index}>• {issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </motion.div>
 
-        {/* Photo with floating products */}
+        {/* Routine Tabs */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="relative max-w-2xl mx-auto mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex justify-center mb-8"
         >
-          {/* Main photo */}
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-            <img
-              src={photoPreview}
-              alt="Your analyzed photo"
-              className="w-full h-auto max-h-[600px] object-cover"
-            />
-            
-            {/* Subtle overlay for better product visibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-beauty-black/20 via-transparent to-beauty-black/10 pointer-events-none" />
+          <div className="bg-beauty-gray-900/50 rounded-lg p-1 flex">
+            {[
+              { key: 'all', label: 'All Products', count: recommendations.length },
+              { key: 'morning', label: 'Morning', count: analysisResult.routineSuggestion.morning.length },
+              { key: 'evening', label: 'Evening', count: analysisResult.routineSuggestion.evening.length },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-all ${
+                  activeTab === tab.key
+                    ? 'bg-beauty-accent text-white shadow-lg'
+                    : 'text-beauty-gray-400 hover:text-white'
+                }`}
+              >
+                {tab.label} ({tab.count})
+              </button>
+            ))}
           </div>
+        </motion.div>
 
-          {/* Floating product markers */}
-          <AnimatePresence>
-            {recommendations.map((rec, index) => {
-              const position = productPositions[index] || { top: '50%', left: '50%' };
-              return (
-                <motion.div
-                  key={rec.product.id}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + index * 0.2 }}
-                  className="absolute z-10 group cursor-pointer"
-                  style={position}
-                  onClick={() => handleProductClick(rec.product)}
-                >
-                  {/* Product marker */}
-                  <div className="relative">
-                    {/* Pulsing ring */}
-                    <div className="absolute inset-0 w-12 h-12 bg-beauty-accent/30 rounded-full animate-ping" />
-                    
-                    {/* Main marker */}
-                    <div className="relative w-12 h-12 bg-beauty-accent rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-                      <span className="text-beauty-black font-bold text-sm">
-                        {index + 1}
+        {/* Product Grid */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+        >
+          <AnimatePresence mode="popLayout">
+            {filteredRecommendations.map((recommendation, index) => (
+              <motion.div
+                key={recommendation.product.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => handleProductClick(recommendation.product)}
+                className="group cursor-pointer"
+              >
+                <div className="bg-beauty-gray-900/50 rounded-xl overflow-hidden hover:bg-beauty-gray-900/70 transition-all duration-300 hover:scale-105 border border-transparent hover:border-beauty-accent/20">
+                  {/* Priority Badge */}
+                  {recommendation.priority <= 3 && (
+                    <div className="absolute top-4 left-4 z-10">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        recommendation.priority === 1 
+                          ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                          : recommendation.priority === 2 
+                          ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                          : 'bg-green-500/20 text-green-300 border border-green-500/30'
+                      }`}>
+                        #{recommendation.priority} Priority
                       </span>
                     </div>
+                  )}
 
-                    {/* Product preview on hover */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                      whileHover={{ opacity: 1, y: -10, scale: 1 }}
-                      className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 pointer-events-none"
-                    >
-                      <div className="bg-beauty-gray-900/95 backdrop-blur-sm rounded-lg p-3 shadow-xl border border-beauty-gray-700 min-w-[200px]">
-                        <div className="flex items-start gap-3">
-                          <img
-                            src={rec.product.imageUrl}
-                            alt={rec.product.name}
-                            className="w-12 h-12 object-cover rounded-lg"
-                          />
-                          <div className="flex-1">
-                            <h4 className="text-white font-medium text-sm leading-tight">
-                              {rec.product.name}
-                            </h4>
-                            <p className="text-beauty-gray-400 text-xs mt-1">
-                              {rec.product.brand}
-                            </p>
-                            <p className="text-beauty-accent text-sm font-medium mt-1">
-                              ${rec.product.price}
-                            </p>
-                          </div>
-                        </div>
-                        <p className="text-beauty-gray-300 text-xs mt-2 leading-relaxed">
-                          {rec.reason}
-                        </p>
-                      </div>
-                    </motion.div>
+                  {/* Product Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <img
+                      src={recommendation.product.imageUrl}
+                      alt={recommendation.product.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </div>
-                </motion.div>
-              );
-            })}
+
+                  {/* Product Info */}
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white group-hover:text-beauty-accent transition-colors line-clamp-2">
+                          {recommendation.product.name}
+                        </h3>
+                        <p className="text-beauty-gray-400 text-sm">{recommendation.product.brand}</p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className="text-beauty-accent font-bold">${recommendation.product.price}</p>
+                        <p className="text-beauty-gray-500 text-xs">{recommendation.product.size}</p>
+                      </div>
+                    </div>
+
+                    {/* Recommendation Reason */}
+                    <p className="text-beauty-gray-300 text-sm mb-4 line-clamp-2">
+                      {recommendation.reason}
+                    </p>
+
+                    {/* Key Ingredients */}
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {recommendation.product.keyIngredients.slice(0, 2).map((ingredient) => (
+                        <span
+                          key={ingredient}
+                          className="inline-block px-2 py-1 bg-beauty-accent/10 text-beauty-accent text-xs rounded-md"
+                        >
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Rating & Usage */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        {recommendation.product.rating && (
+                          <>
+                            <div className="flex items-center gap-1">
+                              <span className="text-yellow-400">⭐</span>
+                              <span className="text-beauty-gray-300">{recommendation.product.rating}</span>
+                            </div>
+                            <span className="text-beauty-gray-500">
+                              ({recommendation.product.reviews} reviews)
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-beauty-gray-400 capitalize">
+                        {recommendation.product.usage.time === 'both' ? 'AM/PM' : recommendation.product.usage.time}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </AnimatePresence>
         </motion.div>
 
-        {/* Analysis summary */}
+        {/* Personalized Advice */}
+        {analysisResult.personalizedAdvice && analysisResult.personalizedAdvice.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-gradient-to-br from-beauty-accent/10 to-beauty-secondary/10 rounded-xl p-8 border border-beauty-accent/20"
+          >
+            <h3 className="text-2xl font-display font-bold text-white mb-6 text-center">
+              💡 Personalized Tips for You
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {analysisResult.personalizedAdvice.map((advice, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 + index * 0.1 }}
+                  className="flex items-start gap-3 p-4 bg-white/5 rounded-lg"
+                >
+                  <span className="text-beauty-accent text-lg flex-shrink-0">✓</span>
+                  <p className="text-beauty-gray-200 text-sm leading-relaxed">{advice}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* CTA Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
-          className="text-center max-w-3xl mx-auto"
+          className="text-center mt-12 pt-8 border-t border-beauty-gray-800"
         >
-          <div className="floating-panel p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              Analysis Summary
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-beauty-gray-400">Skin Tone:</span>
-                <p className="text-white font-medium">{mockAnalysisResult.faceAnalysis.skinTone}</p>
-              </div>
-              <div>
-                <span className="text-beauty-gray-400">Face Shape:</span>
-                <p className="text-white font-medium">{mockAnalysisResult.faceAnalysis.faceShape}</p>
-              </div>
-              <div>
-                <span className="text-beauty-gray-400">Confidence:</span>
-                <p className="text-beauty-accent font-medium">
-                  {Math.round(mockAnalysisResult.faceAnalysis.confidence * 100)}%
-                </p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Personalized advice */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.0 }}
-          className="mt-8 max-w-3xl mx-auto"
-        >
-          <div className="floating-panel p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              💡 Personalized Tips
-            </h3>
-            <ul className="space-y-2">
-              {mockAnalysisResult.personalizedAdvice.map((advice, index) => (
-                <li key={index} className="flex items-start gap-3 text-beauty-gray-300">
-                  <span className="text-beauty-accent mt-1">•</span>
-                  {advice}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h3 className="text-xl font-semibold text-white mb-4">
+            Ready to start your routine?
+          </h3>
+          <p className="text-beauty-gray-400 mb-6">
+            Click on any product above to learn more, see usage instructions, and find purchase links.
+          </p>
+          <button
+            onClick={handleStartOver}
+            className="btn-secondary mr-4"
+          >
+            Create New Analysis
+          </button>
+          <button className="btn-primary">
+            Save My Routine
+          </button>
         </motion.div>
       </main>
 
-      {/* Product Detail Modal */}
-      <AnimatePresence>
-        {showDetailModal && selectedProduct && (
-          <ProductDetailModal
-            product={selectedProduct}
-            onClose={() => {
-              setShowDetailModal(false);
-              setSelectedProduct(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Product Detail Modal - Coming Soon */}
+      {productDetailOpen && selectedProduct && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-beauty-black/80 backdrop-blur-sm"
+          onClick={() => setProductDetailOpen(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-beauty-gray-900 rounded-xl p-6 max-w-md w-full text-center"
+          >
+            <h3 className="text-xl font-semibold text-white mb-4">{selectedProduct.name}</h3>
+            <p className="text-beauty-gray-300 mb-6">Product details modal will be implemented soon!</p>
+            <button
+              onClick={() => setProductDetailOpen(false)}
+              className="btn-primary"
+            >
+              Close
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };

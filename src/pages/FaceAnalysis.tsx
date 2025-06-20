@@ -11,7 +11,6 @@ const FaceAnalysis: React.FC = () => {
     uploadedPhoto, 
     setLoading, 
     setAnalysisResult, 
-    currentSessionId, 
     setCurrentSessionId 
   } = useStore();
   
@@ -144,7 +143,7 @@ const FaceAnalysis: React.FC = () => {
           <div className="relative mb-8 rounded-xl overflow-hidden">
             <img
               src={photoPreview}
-              alt="Your photo being analyzed"
+              alt="Face analysis in progress"
               className="w-full h-96 object-cover"
             />
             

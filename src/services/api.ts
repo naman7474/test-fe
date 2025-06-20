@@ -299,4 +299,5 @@ class MockBeautyAPI {
   }
 }
 
-export default new MockBeautyAPI(); 
+const mockAPI = new MockBeautyAPI();
+export default mockAPI; 

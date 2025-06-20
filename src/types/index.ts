@@ -74,6 +74,18 @@ export interface UserProfile {
   analysisComplete: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  
+  // Direct properties for form compatibility
+  skinType?: string;
+  skinConcerns?: string[];
+  skinSensitivity?: string;
+  hairType?: string;
+  hairConcerns?: string[];
+  sleepHours?: string;
+  waterIntake?: string;
+  stressLevel?: string;
+  allergies?: string;
+  medications?: string;
 }
 
 // Product Types

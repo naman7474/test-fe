@@ -1,10 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
 import useStore from '../../store';
 
 const PhotoUpload: React.FC = () => {
-  const navigate = useNavigate();
   const { setUploadedPhoto, setLoading } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
