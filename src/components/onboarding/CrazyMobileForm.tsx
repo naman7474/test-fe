@@ -1,7 +1,6 @@
 // src/components/onboarding/CrazyMobileForm.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import useStore from '../../store';
 
 interface FormQuestion {
   id: string;
@@ -13,7 +12,6 @@ interface FormQuestion {
 }
 
 const CrazyMobileForm: React.FC = () => {
-  const { updateUserProfile } = useStore();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const containerRef = useRef<HTMLDivElement>(null);

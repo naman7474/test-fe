@@ -1,64 +1,51 @@
 // User Profile Types
 export interface SkinProfile {
-  skinType: 'dry' | 'oily' | 'combination' | 'normal' | 'sensitive';
-  skinTone: string;
-  undertone: 'warm' | 'cool' | 'neutral';
-  fitzpatrickType: 1 | 2 | 3 | 4 | 5 | 6;
-  primaryConcerns: string[];
-  allergies: string[];
-  sensitivityLevel: 'low' | 'medium' | 'high';
-  sunExposure: number; // hours per day
-  sunscreenUsage: 'never' | 'sometimes' | 'always';
-  currentRoutine: {
-    morning: string[];
-    evening: string[];
-  };
+  skin_type?: 'dry' | 'oily' | 'combination' | 'normal' | 'sensitive';
+  skin_tone?: 'fair' | 'light' | 'medium' | 'tan' | 'deep';
+  undertone?: 'warm' | 'cool' | 'neutral';
+  primary_concerns?: string[];
+  sensitivity_level?: 'low' | 'medium' | 'high';
+  allergies?: string[];
 }
 
 export interface HairProfile {
-  hairType: 'straight' | 'wavy' | 'curly' | 'coily';
-  texture: 'fine' | 'medium' | 'thick';
-  scalpCondition: 'dry' | 'oily' | 'normal' | 'dandruff-prone';
-  primaryConcerns: string[];
-  chemicalTreatments: string[];
-  currentRoutine: string[];
-  stylingFrequency: 'daily' | 'weekly' | 'occasionally' | 'never';
+  hair_type?: 'straight' | 'wavy' | 'curly' | 'coily';
+  hair_texture?: 'fine' | 'medium' | 'thick';
+  scalp_condition?: 'dry' | 'oily' | 'normal' | 'flaky' | 'sensitive';
+  primary_concerns?: string[];
+  chemical_treatments?: string[];
+  styling_frequency?: 'daily' | 'weekly' | '2-3_times_week' | 'rarely' | 'never';
 }
 
 export interface LifestyleProfile {
-  location: string;
-  climate: 'dry' | 'humid' | 'temperate' | 'tropical' | 'cold';
-  uvIndex: number;
-  dietType: string;
-  waterIntake: number; // liters per day
-  sleepDuration: number; // hours
-  sleepQuality: 'poor' | 'fair' | 'good' | 'excellent';
-  stressLevel: 'low' | 'moderate' | 'high';
-  exerciseFrequency: 'never' | 'rarely' | 'weekly' | 'daily';
-  smokingStatus: boolean;
-  alcoholConsumption: 'never' | 'occasionally' | 'regularly';
-  workEnvironment: 'outdoor' | 'office' | 'mixed';
-  screenTime: number; // hours per day
+  location?: string;
+  climate_type?: 'humid' | 'dry' | 'tropical' | 'temperate' | 'cold' | 'variable';
+  pollution_level?: 'low' | 'moderate' | 'high' | 'very_high';
+  sun_exposure?: 'minimal' | 'low' | 'moderate' | 'high' | 'very_high';
+  sleep_hours?: number;
+  stress_level?: 'low' | 'moderate' | 'high' | 'very_high';
+  exercise_frequency?: 'daily' | '3_times_week' | 'weekly' | 'rarely' | 'never';
+  water_intake?: 'less_than_4' | '4-6_glasses' | '6-8_glasses' | 'more_than_8';
 }
 
 export interface HealthProfile {
-  skinConditions: string[];
-  hairConditions: string[];
-  medicalConditions: string[];
-  medications: string[];
-  recentTreatments: string[];
+  age?: number;
+  hormonal_status?: 'normal' | 'pregnancy' | 'postpartum' | 'menopause' | 'pcos' | 'thyroid_issues' | 'hormonal_acne';
+  medications?: string[];
+  skin_conditions?: string[];
+  dietary_restrictions?: string[];
 }
 
 export interface MakeupProfile {
-  usageFrequency: 'daily' | 'occasional' | 'special-events' | 'never';
-  preferredStyle: 'natural' | 'professional' | 'glamorous' | 'creative';
-  coverageLevel: 'light' | 'medium' | 'full';
-  colorPreferences: {
-    lips: string[];
-    eyes: string[];
-    cheeks: string[];
-  };
-  budgetRange: 'budget' | 'mid-range' | 'high-end' | 'luxury';
+  makeup_frequency?: 'daily' | 'often' | 'occasionally' | 'rarely' | 'never';
+  preferred_look?: 'natural' | 'minimal' | 'glam' | 'bold' | 'professional';
+  coverage_preference?: 'sheer' | 'light' | 'medium' | 'full';
+}
+
+export interface PreferencesProfile {
+  budget_range?: 'under_1000' | '1000_3000' | '3000_5000' | '5000_10000' | 'above_10000';
+  brand_preference?: 'luxury' | 'premium' | 'drugstore' | 'indie' | 'no_preference';
+  ingredient_preference?: string[];
 }
 
 export interface UserProfile {
@@ -66,12 +53,14 @@ export interface UserProfile {
   name?: string;
   email?: string;
   photoUrl?: string;
-  skinProfile?: SkinProfile;
-  hairProfile?: HairProfile;
-  lifestyleProfile?: LifestyleProfile;
-  healthProfile?: HealthProfile;
-  makeupProfile?: MakeupProfile;
-  analysisComplete: boolean;
+  skin?: SkinProfile;
+  hair?: HairProfile;
+  lifestyle?: LifestyleProfile;
+  health?: HealthProfile;
+  makeup?: MakeupProfile;
+  preferences?: PreferencesProfile;
+  analysisComplete?: boolean;
+  profileComplete?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   
@@ -121,7 +110,7 @@ export interface ProductRecommendation {
 }
 
 // Form Step Types
-export type FormStep = 'skin' | 'hair' | 'lifestyle' | 'health' | 'makeup' | 'photo';
+export type FormStep = 'skin' | 'hair' | 'lifestyle' | 'health' | 'makeup' | 'preferences' | 'photo';
 
 export interface FormStepInfo {
   step: FormStep;

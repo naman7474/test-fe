@@ -1,10 +1,11 @@
 // src/pages/MinimalResults.tsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import useStore from '../store';
 import { Product } from '../types';
 import ScheduleModal from '../components/results/ScheduleModal';
 import ProfileEditModal from '../components/results/ProfileEditModal';
+import { getProfileCompletionPercentage } from '../config/profileSchema';
+import useStore from '../store';
 
 interface CategoryProducts {
   category: string;
@@ -117,6 +118,7 @@ const mockCategories: CategoryProducts[] = [
 ];
 
 const MinimalResults: React.FC = () => {
+  const { userProfile } = useStore();
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -125,6 +127,8 @@ const MinimalResults: React.FC = () => {
   const [activeTab, setActiveTab] = useState('home');
 
   const userName = localStorage.getItem('userName') || 'Beautiful';
+  const profileCompletionPercentage = getProfileCompletionPercentage(userProfile);
+  const isProfileComplete = profileCompletionPercentage === 100;
 
   const handleCategoryClick = (category: CategoryProducts) => {
     setShowProductModal(true);
@@ -151,11 +155,16 @@ const MinimalResults: React.FC = () => {
           </div>
           <button 
             onClick={() => setShowProfileModal(true)}
-            className="p-2 rounded-full bg-beauty-charcoal text-beauty-gray-300 hover:text-white transition-colors"
+            className="relative p-2 rounded-full bg-beauty-charcoal text-beauty-gray-300 hover:text-white transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
+            {!isProfileComplete && (
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-beauty-accent rounded-full flex items-center justify-center">
+                <span className="text-[8px] text-white font-bold">!</span>
+              </div>
+            )}
           </button>
         </div>
       </header>

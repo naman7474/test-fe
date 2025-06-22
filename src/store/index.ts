@@ -45,6 +45,13 @@ interface AppState {
 
 const initialUserProfile: UserProfile = {
   analysisComplete: false,
+  profileComplete: false,
+  skin: {},
+  hair: {},
+  lifestyle: {},
+  health: {},
+  makeup: {},
+  preferences: {}
 };
 
 const useStore = create<AppState>((set, get) => ({

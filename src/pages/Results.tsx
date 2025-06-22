@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store';
 import { ProductRecommendation } from '../types';
+import beautyAPI from '../services/api';
 
 const Results: React.FC = () => {
   const navigate = useNavigate();
@@ -13,23 +14,47 @@ const Results: React.FC = () => {
     selectedProduct, 
     setSelectedProduct,
     productDetailOpen,
-    setProductDetailOpen 
+    setProductDetailOpen,
+    setAnalysisResult 
   } = useStore();
   
   const [recommendations, setRecommendations] = useState<ProductRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'morning' | 'evening'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userProfile.analysisComplete && !analysisResult) {
-      navigate('/');
-      return;
-    }
+    const fetchRecommendations = async () => {
+      try {
+        // Check if we already have recommendations in the store
+        const currentAnalysisResult = useStore.getState().analysisResult;
+        
+        if (currentAnalysisResult?.recommendations) {
+          setRecommendations(currentAnalysisResult.recommendations);
+          setIsLoading(false);
+          return;
+        }
 
-    // Use analysis result if available
-    if (analysisResult?.recommendations) {
-      setRecommendations(analysisResult.recommendations);
-    }
-  }, [userProfile, analysisResult, navigate]);
+        // Otherwise, fetch from backend
+        setIsLoading(true);
+        const result = await beautyAPI.getFormattedRecommendations();
+        setAnalysisResult(result);
+        setRecommendations(result.recommendations);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch recommendations:', err);
+        setError('Failed to load recommendations. Please try again.');
+        setIsLoading(false);
+        
+        // If not authenticated, redirect to login
+        if ((err as any).response?.status === 401) {
+          navigate('/login');
+        }
+      }
+    };
+
+    fetchRecommendations();
+  }, [setAnalysisResult, navigate]);
 
   const handleProductClick = (product: any) => {
     setSelectedProduct(product);
@@ -47,12 +72,49 @@ const Results: React.FC = () => {
     return rec.product.usage.time === activeTab || rec.product.usage.time === 'both';
   });
 
-  if (!analysisResult) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-beauty-black flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-beauty-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-beauty-gray-400">Loading your results...</p>
+          <p className="text-beauty-gray-400">Loading your recommendations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-red-300 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!analysisResult || recommendations.length === 0) {
+    return (
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-beauty-gray-400 mb-4">No recommendations available yet.</p>
+          <button
+            onClick={() => navigate('/onboarding')}
+            className="btn-primary"
+          >
+            Complete Your Profile
+          </button>
         </div>
       </div>
     );

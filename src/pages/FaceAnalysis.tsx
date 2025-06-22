@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store';
-import mockAPI from '../services/api';
+import beautyAPI from '../services/api';
 
 const FaceAnalysis: React.FC = () => {
   const navigate = useNavigate();
@@ -30,13 +30,13 @@ const FaceAnalysis: React.FC = () => {
         setLoading(true, 'Starting face analysis...');
         
         // Step 1: Upload photo
-        const uploadResponse = await mockAPI.uploadPhoto(uploadedPhoto);
+        const uploadResponse = await beautyAPI.uploadPhoto(uploadedPhoto);
         
         if (!uploadResponse.success) {
           throw new Error('Upload failed');
         }
 
-        const sessionId = uploadResponse.session_id;
+        const sessionId = uploadResponse.data.session_id;
         setCurrentSessionId(sessionId);
 
         // Generate face detection points for animation
@@ -45,20 +45,42 @@ const FaceAnalysis: React.FC = () => {
         // Step 2: Poll for analysis completion
         const pollForResults = async () => {
           try {
-            const statusResponse = await mockAPI.getAnalysisStatus(sessionId);
+            const statusResponse = await beautyAPI.getAnalysisStatus(sessionId);
             
-            setProgress(statusResponse.progress);
-            setCurrentStep(statusResponse.step);
+            // Calculate progress based on status
+            let progress = 0;
+            let currentStep = 'Initializing...';
             
-            if (statusResponse.status === 'complete' && statusResponse.result) {
-              setAnalysisResult(statusResponse.result);
-              setLoading(false);
-              
-              // Show completion message briefly before navigating
-              setTimeout(() => {
-                navigate('/results');
-              }, 1500);
-            } else if (statusResponse.status === 'error') {
+            if (statusResponse.data.status === 'pending') {
+              progress = 10;
+              currentStep = 'Preparing analysis...';
+            } else if (statusResponse.data.status === 'processing') {
+              progress = 50;
+              currentStep = 'Analyzing facial features...';
+            } else if (statusResponse.data.status === 'completed') {
+              progress = 100;
+              currentStep = 'Analysis complete!';
+            }
+            
+            setProgress(progress);
+            setCurrentStep(currentStep);
+            
+            if (statusResponse.data.status === 'completed') {
+              // Get recommendations after analysis is complete
+              try {
+                const analysisResult = await beautyAPI.getFormattedRecommendations();
+                setAnalysisResult(analysisResult);
+                setLoading(false);
+                
+                // Show completion message briefly before navigating
+                setTimeout(() => {
+                  navigate('/results');
+                }, 1500);
+              } catch (err) {
+                console.error('Failed to get recommendations:', err);
+                throw new Error('Failed to generate recommendations');
+              }
+            } else if (statusResponse.data.status === 'failed') {
               throw new Error('Analysis failed');
             } else {
               // Continue polling

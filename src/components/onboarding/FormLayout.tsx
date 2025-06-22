@@ -25,10 +25,8 @@ const FormLayout: React.FC<FormLayoutProps> = ({
 
   const formSteps: FormStepInfo[] = [
     { step: 'skin', title: 'Skin Profile', description: 'Tell us about your skin', icon: '🧴' },
-    { step: 'hair', title: 'Hair Profile', description: 'Your hair care needs', icon: '💇‍♀️' },
     { step: 'lifestyle', title: 'Lifestyle', description: 'Your daily habits', icon: '🌿' },
-    { step: 'health', title: 'Health', description: 'Medical considerations', icon: '🏥' },
-    { step: 'makeup', title: 'Makeup', description: 'Your preferences', icon: '💄' },
+    { step: 'preferences', title: 'Preferences', description: 'Your budget and preferences', icon: '💰' },
   ];
 
   return (

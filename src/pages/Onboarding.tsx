@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import useStore from '../store';
-import FormLayout from '../components/onboarding/FormLayout';
-import SkinProfileForm from '../components/onboarding/SkinProfileForm';
+import ScrollBasedForm from '../components/onboarding/ScrollBasedForm';
 import PhotoUpload from '../components/landing/PhotoUpload';
 import { FormStep, FormStepInfo } from '../types';
+import beautyAPI from '../services/api';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { currentStep, setCurrentStep, markStepComplete, setLoading, photoPreview } = useStore();
+  const { currentStep, setCurrentStep, markStepComplete, setLoading, photoPreview, userProfile } = useStore();
   const [isValid, setIsValid] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const formSteps: FormStepInfo[] = [
     { step: 'skin', title: 'Skin Profile', description: 'Help us understand your skin', icon: '🧴' },
-    { step: 'hair', title: 'Hair Profile', description: 'Tell us about your hair', icon: '💇‍♀️' },
     { step: 'lifestyle', title: 'Lifestyle', description: 'Your daily habits matter', icon: '🌿' },
-    { step: 'health', title: 'Health', description: 'Any medical considerations?', icon: '🏥' },
-    { step: 'makeup', title: 'Makeup', description: 'Your beauty preferences', icon: '💄' },
+    { step: 'preferences', title: 'Preferences', description: 'Your budget and preferences', icon: '💰' },
     { step: 'photo', title: 'Upload Photo', description: 'Take a selfie for analysis', icon: '📸' },
   ];
 
@@ -29,31 +28,62 @@ const Onboarding: React.FC = () => {
     markStepComplete(currentStep);
 
     if (currentStep === 'photo' && photoPreview) {
-      // Navigate to face analysis when photo step is completed
-      setLoading(true, 'Preparing your photo for analysis...');
-      navigate('/analysis');
-    } else if (isLastStep) {
-      // If no photo was uploaded, navigate directly to results with profile-only recommendations
-      setLoading(true, 'Generating recommendations based on your profile...');
+      // Submit profile data before proceeding to analysis
+      setLoading(true, 'Saving your profile...');
       
-      // Simulate some processing time
-      setTimeout(() => {
+      try {
+        await beautyAPI.submitProfile(userProfile);
+        setLoading(true, 'Preparing your photo for analysis...');
+        navigate('/analysis');
+      } catch (error) {
+        console.error('Failed to save profile:', error);
         setLoading(false);
-        navigate('/results');
-      }, 2000);
+        return;
+      }
+    } else if (isLastStep) {
+      // If no photo was uploaded, still submit profile and navigate to results
+      setLoading(true, 'Saving your profile...');
+      
+      try {
+        await beautyAPI.submitProfile(userProfile);
+        setLoading(true, 'Generating recommendations based on your profile...');
+        
+        // Check onboarding status after profile submission
+        const onboardingStatus = await beautyAPI.getOnboardingProgress();
+        
+        if (onboardingStatus.steps.recommendations.generated) {
+          navigate('/results');
+        } else {
+          // If recommendations aren't generated yet, wait a bit
+          setTimeout(() => {
+            navigate('/results');
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Failed to save profile:', error);
+        setLoading(false);
+        return;
+      }
     } else {
-      // Go to next step
-      const nextStep = formSteps[currentStepIndex + 1];
-      setCurrentStep(nextStep.step);
+      // Animate transition to next step
+      setIsTransitioning(true);
+      setTimeout(() => {
+        const nextStep = formSteps[currentStepIndex + 1];
+        setCurrentStep(nextStep.step);
+        setIsTransitioning(false);
+      }, 300);
     }
   };
 
   const handleBack = () => {
     if (currentStepIndex > 0) {
-      const prevStep = formSteps[currentStepIndex - 1];
-      setCurrentStep(prevStep.step);
+      setIsTransitioning(true);
+      setTimeout(() => {
+        const prevStep = formSteps[currentStepIndex - 1];
+        setCurrentStep(prevStep.step);
+        setIsTransitioning(false);
+      }, 300);
     } else {
-      // If on first step, go back to landing
       navigate('/');
     }
   };
@@ -61,15 +91,15 @@ const Onboarding: React.FC = () => {
   const renderFormStep = () => {
     switch (currentStep) {
       case 'skin':
-        return <SkinProfileForm onValidChange={setIsValid} />;
-      case 'hair':
-        return <SimplifiedForm step="hair" onValidChange={setIsValid} />;
       case 'lifestyle':
-        return <SimplifiedForm step="lifestyle" onValidChange={setIsValid} />;
-      case 'health':
-        return <SimplifiedForm step="health" onValidChange={setIsValid} />;
-      case 'makeup':
-        return <SimplifiedForm step="makeup" onValidChange={setIsValid} />;
+      case 'preferences':
+        return (
+          <ScrollBasedForm 
+            step={currentStep} 
+            onValidChange={setIsValid} 
+            onlyRequired={true}
+          />
+        );
       case 'photo':
         return <PhotoUploadStep onValidChange={setIsValid} />;
       default:
@@ -78,18 +108,86 @@ const Onboarding: React.FC = () => {
   };
 
   return (
-    <AnimatePresence mode="wait">
-      <FormLayout
-        key={currentStep}
-        stepInfo={currentStepInfo}
-        onNext={handleNext}
-        onBack={currentStepIndex > 0 ? handleBack : undefined}
-        isValid={isValid}
-        isLastStep={isLastStep}
-      >
-        {renderFormStep()}
-      </FormLayout>
-    </AnimatePresence>
+    <div className="min-h-screen bg-beauty-black relative">
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-30 bg-beauty-black/80 backdrop-blur-sm border-b border-beauty-gray-800">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handleBack}
+              className="text-beauty-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <div className="text-center">
+              <h1 className="text-lg font-semibold text-white">{currentStepInfo.title}</h1>
+              <p className="text-xs text-beauty-gray-400">{currentStepInfo.description}</p>
+            </div>
+            
+            <button
+              onClick={() => navigate('/')}
+              className="text-beauty-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Step indicators */}
+          <div className="flex justify-center gap-2 mt-4">
+            {formSteps.map((step, index) => (
+              <div
+                key={step.step}
+                className={`h-1 rounded-full transition-all ${
+                  index <= currentStepIndex 
+                    ? 'w-8 bg-beauty-accent' 
+                    : 'w-8 bg-beauty-gray-700'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="pt-24 pb-24">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: isTransitioning ? 100 : 0 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: isTransitioning ? -100 : 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {renderFormStep()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-beauty-black/80 backdrop-blur-sm border-t border-beauty-gray-800">
+        <div className="px-6 py-4">
+          <button
+            onClick={handleNext}
+            disabled={!isValid && currentStep !== 'photo'}
+            className={`w-full py-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+              isValid || currentStep === 'photo'
+                ? 'bg-gradient-to-r from-beauty-accent to-beauty-secondary text-white hover:shadow-lg hover:shadow-beauty-accent/25'
+                : 'bg-beauty-gray-800 text-beauty-gray-500 cursor-not-allowed'
+            }`}
+          >
+            <span>{isLastStep ? 'Complete' : 'Continue'}</span>
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -103,137 +201,47 @@ const PhotoUploadStep: React.FC<{ onValidChange: (valid: boolean) => void }> = (
   }, [onValidChange]);
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <p className="text-beauty-gray-300 mb-4">
-          Upload a clear selfie for personalized skin analysis. This step is optional - you can skip it and get recommendations based on your profile.
-        </p>
-        {photoPreview && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Photo uploaded successfully!
-          </div>
+    <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="text-6xl mb-4"
+          >
+            📸
+          </motion.div>
+          <h2 className="text-2xl font-bold text-white mb-2">Let's see that beautiful face!</h2>
+          <p className="text-beauty-gray-400">
+            Upload a clear selfie for personalized skin analysis
+          </p>
+          {photoPreview && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm mt-4"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Photo uploaded successfully!
+            </motion.div>
+          )}
+        </div>
+        
+        <PhotoUpload />
+        
+        {!photoPreview && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center text-beauty-gray-500 text-sm mt-6"
+          >
+            No photo? No problem! We'll use your profile answers to make great recommendations.
+          </motion.p>
         )}
       </div>
-      <PhotoUpload />
-      {!photoPreview && (
-        <div className="text-center">
-          <p className="text-beauty-gray-500 text-sm">
-            No photo? No problem! We'll use your profile answers to make great recommendations.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// Simplified form component for other steps
-const SimplifiedForm: React.FC<{ step: FormStep; onValidChange: (valid: boolean) => void }> = ({ 
-  step, 
-  onValidChange 
-}) => {
-
-  const [hasInteracted, setHasInteracted] = useState(false);
-
-  React.useEffect(() => {
-    onValidChange(hasInteracted);
-  }, [hasInteracted, onValidChange]);
-
-  const getStepContent = () => {
-    switch (step) {
-      case 'hair':
-        return {
-          title: 'Hair Information',
-          fields: [
-            { label: 'Hair Type', placeholder: 'Straight, wavy, curly, or coily' },
-            { label: 'Scalp Condition', placeholder: 'Dry, oily, normal, or dandruff-prone' },
-            { label: 'Primary Concerns', placeholder: 'Hair loss, frizz, split ends, etc.' },
-            { label: 'Styling Frequency', placeholder: 'Daily, weekly, occasionally, never' }
-          ],
-          description: 'Understanding your hair helps us recommend the right products.',
-        };
-      case 'lifestyle':
-        return {
-          title: 'Lifestyle Factors',
-          fields: [
-            { label: 'Location', placeholder: 'City, State/Country' },
-            { label: 'Climate', placeholder: 'Humid, dry, temperate, tropical' },
-            { label: 'Diet Type', placeholder: 'Vegetarian, balanced, high protein, etc.' },
-            { label: 'Sleep Quality', placeholder: 'Poor, fair, good, excellent' },
-            { label: 'Exercise Frequency', placeholder: 'Daily, weekly, rarely, never' }
-          ],
-          description: 'Your environment and habits affect your skin and hair health.',
-        };
-      case 'health':
-        return {
-          title: 'Health Considerations',
-          fields: [
-            { label: 'Skin Conditions', placeholder: 'Eczema, rosacea, acne, etc.' },
-            { label: 'Medications', placeholder: 'Any that might affect skin/hair' },
-            { label: 'Recent Treatments', placeholder: 'Facials, chemical peels, etc.' }
-          ],
-          description: 'This helps us ensure safe and effective recommendations.',
-        };
-      case 'makeup':
-        return {
-          title: 'Makeup Preferences',
-          fields: [
-            { label: 'Usage Frequency', placeholder: 'Daily, occasional, special events, never' },
-            { label: 'Preferred Style', placeholder: 'Natural, professional, glamorous, creative' },
-            { label: 'Coverage Level', placeholder: 'Light, medium, full' },
-            { label: 'Budget Range', placeholder: 'Budget, mid-range, high-end, luxury' }
-          ],
-          description: 'Let us know your makeup routine and preferences.',
-        };
-      default:
-        return { title: '', fields: [], description: '' };
-    }
-  };
-
-  const content = getStepContent();
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-beauty-gray-900/50 rounded-lg p-6">
-        <p className="text-beauty-gray-300 mb-6 text-center">{content.description}</p>
-        <div className="space-y-4">
-          {content.fields.map((field, index) => (
-            <div key={field.label} className="text-left">
-              <label className="form-label">{field.label}</label>
-              <input
-                type="text"
-                placeholder={field.placeholder}
-                onChange={() => !hasInteracted && setHasInteracted(true)}
-                className="form-input"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Additional helpful content */}
-      {step === 'health' && (
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-blue-300 text-sm font-medium mb-1">Privacy Notice</p>
-              <p className="text-blue-200 text-xs">
-                Your health information is encrypted and only used to personalize recommendations. 
-                We never share this data with third parties.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <p className="text-sm text-beauty-gray-500 text-center italic">
-        Note: This is a simplified form for demonstration. The full version would include all specific fields and validation.
-      </p>
     </div>
   );
 };

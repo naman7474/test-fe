@@ -1,40 +1,58 @@
 // src/pages/LoginSignup.tsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import beautyAPI from '../services/api';
+import useStore from '../store';
 
 const LoginSignup: React.FC = () => {
+  const navigate = useNavigate();
+  const { updateUserProfile } = useStore();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fixed credentials for demo
-  const DEMO_EMAIL = 'demo@beautyai.com';
-  const DEMO_PASSWORD = 'beauty123';
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true);
 
-    if (isLogin) {
-      // Login validation
-      if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('userName', 'Demo User');
-        window.location.href = '/';
+    try {
+      if (isLogin) {
+        // Login
+        const { token, user } = await beautyAPI.login(email, password);
+        localStorage.setItem('authToken', token);
+        localStorage.setItem('userName', user.name || email);
+        updateUserProfile(user);
+        navigate('/');
       } else {
-        setError('Invalid credentials. Use demo@beautyai.com / beauty123');
-      }
-    } else {
-      // Signup - for demo, just accept any input and login
-      if (email && password && name) {
-        localStorage.setItem('isAuthenticated', 'true');
+        // Signup
+        if (!name || !email || !password) {
+          setError('Please fill all fields');
+          setIsLoading(false);
+          return;
+        }
+        
+        const { token, user } = await beautyAPI.signup(email, password, name);
+        localStorage.setItem('authToken', token);
         localStorage.setItem('userName', name);
-        window.location.href = '/';
-      } else {
-        setError('Please fill all fields');
+        updateUserProfile(user);
+        navigate('/onboarding');
       }
+    } catch (err: any) {
+      console.error('Authentication error:', err);
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError(isLogin ? 'Invalid email or password' : 'Failed to create account');
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -151,27 +169,23 @@ const LoginSignup: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="w-full btn-primary py-3"
+              disabled={isLoading}
+              className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isLogin ? 'Login' : 'Create Account'}
+              {isLoading ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  />
+                  <span>{isLogin ? 'Logging in...' : 'Creating account...'}</span>
+                </>
+              ) : (
+                <span>{isLogin ? 'Login' : 'Create Account'}</span>
+              )}
             </motion.button>
           </form>
-
-          {/* Demo credentials hint */}
-          {isLogin && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="mt-6 p-4 bg-beauty-charcoal/50 rounded-lg border border-beauty-gray-800"
-            >
-              <p className="text-beauty-gray-400 text-sm text-center">
-                Demo credentials:
-                <br />
-                <span className="text-beauty-gray-300">demo@beautyai.com / beauty123</span>
-              </p>
-            </motion.div>
-          )}
 
           {/* Terms */}
           <p className="text-center text-beauty-gray-500 text-xs mt-8">

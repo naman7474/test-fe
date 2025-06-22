@@ -1,303 +1,449 @@
 import { UserProfile, AnalysisResult, ProductRecommendation, Product } from '../types';
+import axios from 'axios';
 
-// Mock delay function to simulate API calls
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// API Configuration
+const API_BASE_URL = 'http://localhost:5000/api';
 
-// Mock products database
-const mockProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Clarifying Salicylic Acid Serum',
-    brand: 'SkinScience',
-    category: 'skincare',
-    subcategory: 'serum',
-    imageUrl: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400',
-    price: 45.00,
-    size: '30ml',
-    ingredients: ['Salicylic Acid', 'Niacinamide', 'Tea Tree Extract', 'Hyaluronic Acid'],
-    keyIngredients: ['2% Salicylic Acid', '5% Niacinamide'],
-    benefits: ['Reduces acne', 'Minimizes pores', 'Controls oil production', 'Gentle exfoliation'],
-    targetConcerns: ['acne', 'oily skin', 'large pores', 'blackheads'],
-    applicationArea: ['forehead', 'nose', 'chin'],
-    usage: {
-      frequency: 'Daily (evening)',
-      time: 'evening',
-      amount: '2-3 drops',
-      instructions: 'Apply to clean skin, avoid eye area. Use sunscreen during the day.',
-    },
-    rating: 4.6,
-    reviews: 1247,
+// Create axios instance with default config
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
   },
-  {
-    id: '2',
-    name: 'Brightening Vitamin C Serum',
-    brand: 'GlowLab',
-    category: 'skincare',
-    subcategory: 'serum',
-    imageUrl: 'https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=400',
-    price: 55.00,
-    size: '30ml',
-    ingredients: ['L-Ascorbic Acid', 'Vitamin E', 'Ferulic Acid', 'Hyaluronic Acid'],
-    keyIngredients: ['20% L-Ascorbic Acid', 'Vitamin E', 'Ferulic Acid'],
-    benefits: ['Brightens dark spots', 'Evens skin tone', 'Antioxidant protection', 'Collagen boost'],
-    targetConcerns: ['dark spots', 'dull skin', 'uneven tone', 'fine lines'],
-    applicationArea: ['cheeks', 'forehead', 'full face'],
-    usage: {
-      frequency: 'Daily (morning)',
-      time: 'morning',
-      amount: '3-4 drops',
-      instructions: 'Apply to clean skin before moisturizer. Always follow with SPF.',
-    },
-    rating: 4.8,
-    reviews: 956,
-  },
-  {
-    id: '3',
-    name: 'Lightweight SPF 50+ Gel Sunscreen',
-    brand: 'SunSafe',
-    category: 'skincare',
-    subcategory: 'sunscreen',
-    imageUrl: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400',
-    price: 28.00,
-    size: '50ml',
-    ingredients: ['Zinc Oxide', 'Titanium Dioxide', 'Hyaluronic Acid', 'Niacinamide'],
-    keyIngredients: ['SPF 50+', '15% Zinc Oxide'],
-    benefits: ['Broad spectrum protection', 'Non-greasy formula', 'Hydrating', 'Suitable for oily skin'],
-    targetConcerns: ['sun protection', 'oily skin', 'daily protection'],
-    applicationArea: ['full face', 'neck'],
-    usage: {
-      frequency: 'Daily (morning)',
-      time: 'morning', 
-      amount: 'Two finger lengths for face',
-      instructions: 'Apply as last step of morning routine. Reapply every 2 hours.',
-    },
-    rating: 4.7,
-    reviews: 2134,
-  },
-  {
-    id: '4',
-    name: 'Eye Brightening Caffeine Cream',
-    brand: 'LuxeSkin',
-    category: 'skincare',
-    subcategory: 'eye cream',
-    imageUrl: 'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=400',
-    price: 65.00,
-    size: '15ml',
-    ingredients: ['Caffeine', 'Vitamin K', 'Peptides', 'Hyaluronic Acid', 'Niacinamide'],
-    keyIngredients: ['5% Caffeine', 'Tripeptide Complex'],
-    benefits: ['Reduces dark circles', 'Diminishes puffiness', 'Firms skin', 'Hydrates delicate eye area'],
-    targetConcerns: ['dark circles', 'puffiness', 'fine lines', 'tired eyes'],
-    applicationArea: ['under eyes', 'upper eyelids'],
-    usage: {
-      frequency: 'Daily (morning & evening)',
-      time: 'both',
-      amount: 'Rice grain size per eye',
-      instructions: 'Gently pat around eye area using ring finger. Avoid direct contact with eyes.',
-    },
-    rating: 4.5,
-    reviews: 743,
-  },
-  {
-    id: '5',
-    name: 'Hydrating Hyaluronic Acid Moisturizer',
-    brand: 'AquaGlow',
-    category: 'skincare',
-    subcategory: 'moisturizer',
-    imageUrl: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400',
-    price: 38.00,
-    size: '50ml',
-    ingredients: ['Hyaluronic Acid', 'Ceramides', 'Niacinamide', 'Panthenol'],
-    keyIngredients: ['3 Types of Hyaluronic Acid', 'Ceramide Complex'],
-    benefits: ['Deep hydration', 'Strengthens skin barrier', 'Plumping effect', 'Suitable for all skin types'],
-    targetConcerns: ['dehydration', 'dull skin', 'rough texture'],
-    applicationArea: ['full face', 'neck'],
-    usage: {
-      frequency: 'Daily (morning & evening)',
-      time: 'both',
-      amount: 'Pea-sized amount',
-      instructions: 'Apply to damp skin for best absorption. Can be layered under other moisturizers.',
-    },
-    rating: 4.6,
-    reviews: 1823,
-  },
-  {
-    id: '6',
-    name: 'Gentle Foaming Cleanser',
-    brand: 'PureSkin',
-    category: 'skincare',
-    subcategory: 'cleanser',
-    imageUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
-    price: 22.00,
-    size: '150ml',
-    ingredients: ['Glycerin', 'Coco-Glucoside', 'Panthenol', 'Allantoin'],
-    keyIngredients: ['Gentle Surfactants', 'Pro-Vitamin B5'],
-    benefits: ['Removes impurities', 'Maintains skin barrier', 'Non-drying', 'pH balanced'],
-    targetConcerns: ['daily cleansing', 'sensitive skin', 'maintaining balance'],
-    applicationArea: ['full face'],
-    usage: {
-      frequency: 'Daily (morning & evening)',
-      time: 'both',
-      amount: 'Pump 1-2 times',
-      instructions: 'Massage into wet skin, rinse thoroughly with lukewarm water.',
-    },
-    rating: 4.4,
-    reviews: 1456,
+  timeout: 30000, // 30 seconds timeout
+});
+
+// Add auth token to requests if available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-];
+  return config;
+});
+
+// Handle auth errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem('authToken');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface UploadResponse {
   success: boolean;
-  session_id: string;
-  message: string;
+  data: {
+    session_id: string;
+    photo_id: string;
+    processing_status: string;
+    estimated_time: number;
+  };
 }
 
 export interface AnalysisResponse {
   success: boolean;
-  progress: number;
-  status: 'processing' | 'complete' | 'error';
-  step: string;
-  result?: AnalysisResult;
+  data: {
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    face_model_url?: string;
+    face_landmarks?: any[];
+    processing_time?: number;
+    analysis?: {
+      skin_concerns: Array<{
+        type: string;
+        severity: string;
+        locations: string[];
+        confidence: number;
+      }>;
+      skin_attributes: {
+        tone: string;
+        undertone: string;
+        texture: string;
+        age_appearance: number;
+      };
+      overall_skin_score: number;
+      ai_observations: string[];
+      positive_attributes: string[];
+    };
+  };
 }
 
-class MockBeautyAPI {
-  private analysisProgress: { [sessionId: string]: number } = {};
-  private analysisResults: { [sessionId: string]: AnalysisResult } = {};
-
-  async uploadPhoto(file: File): Promise<UploadResponse> {
-    await delay(1000); // Simulate upload time
-    
-    const sessionId = Math.random().toString(36).substring(7);
-    this.analysisProgress[sessionId] = 0;
-    
-    return {
-      success: true,
-      session_id: sessionId,
-      message: 'Photo uploaded successfully'
+export interface OnboardingProgress {
+  steps: {
+    profile: {
+      complete: boolean;
+      percentage: number;
+      sections: {
+        [key: string]: {
+          total: number;
+          completed: number;
+          percentage: number;
+        };
+      };
     };
+    photo: {
+      uploaded: boolean;
+      processed: boolean;
+      status: string;
+    };
+    recommendations: {
+      generated: boolean;
+    };
+  };
+  overallProgress: number;
+  nextStep: string;
+}
+
+export interface RecommendationsResponse {
+  success: boolean;
+  data: {
+    routine: {
+      morning: Product[];
+      evening: Product[];
+      weekly: Product[];
+    };
+    targeted_treatments: Array<{
+      concern: string;
+      product_type: string;
+      key_ingredients: string[];
+      application_zones: any;
+      frequency: string;
+    }>;
+    ai_insights: {
+      primary_focus: string;
+      routine_philosophy: string;
+      expected_timeline: string;
+      lifestyle_tips: string[];
+    };
+  };
+}
+
+class BeautyAPI {
+  // Authentication
+  async login(email: string, password: string): Promise<{ token: string; user: UserProfile }> {
+    const response = await apiClient.post('/auth/login', { email, password });
+    const { token, user } = response.data.data;
+    localStorage.setItem('authToken', token);
+    return { token, user };
+  }
+
+  async signup(email: string, password: string, name: string): Promise<{ token: string; user: UserProfile }> {
+    const response = await apiClient.post('/auth/signup', { email, password, name });
+    const { token, user } = response.data.data;
+    localStorage.setItem('authToken', token);
+    return { token, user };
+  }
+
+  async logout(): Promise<void> {
+    localStorage.removeItem('authToken');
+  }
+
+  // Onboarding Progress
+  async getOnboardingProgress(): Promise<OnboardingProgress> {
+    const response = await apiClient.get('/profile/beauty/onboarding');
+    return response.data.data;
+  }
+
+  // Helper function to clean and map profile data to backend format
+  private cleanProfileData(profileData: any, section: string): any {
+    if (!profileData || typeof profileData !== 'object') return {};
+    
+    const cleaned: any = {};
+    
+    // Handle each section differently based on expected backend fields
+    switch (section) {
+      case 'skin':
+        // Map any legacy field names to correct ones
+        if (profileData.skin_type) cleaned.skin_type = profileData.skin_type;
+        if (profileData.skin_tone) cleaned.skin_tone = profileData.skin_tone;
+        if (profileData.undertone) cleaned.undertone = profileData.undertone;
+        if (profileData.sensitivity_level) cleaned.sensitivity_level = profileData.sensitivity_level;
+        if (profileData.allergies) cleaned.allergies = profileData.allergies;
+        
+        // Handle primary_concerns - check for both current and legacy field names
+        if (profileData.primary_concerns) {
+          cleaned.primary_concerns = profileData.primary_concerns;
+        } else if (profileData.primary_skin_concerns) {
+          cleaned.primary_concerns = profileData.primary_skin_concerns;
+        } else if (profileData.skinConcerns) {
+          cleaned.primary_concerns = profileData.skinConcerns;
+        }
+        break;
+        
+      case 'lifestyle':
+        // Copy all lifestyle fields as they should be correct
+        Object.keys(profileData).forEach(key => {
+          if (['location', 'climate_type', 'pollution_level', 'sun_exposure', 'sleep_hours', 'stress_level', 'exercise_frequency', 'water_intake'].includes(key)) {
+            cleaned[key] = profileData[key];
+          }
+        });
+        break;
+        
+      case 'hair':
+        // Copy hair fields
+        Object.keys(profileData).forEach(key => {
+          if (['hair_type', 'hair_texture', 'scalp_condition', 'primary_concerns', 'chemical_treatments', 'styling_frequency'].includes(key)) {
+            cleaned[key] = profileData[key];
+          }
+        });
+        break;
+        
+      case 'health':
+        // Copy health fields
+        Object.keys(profileData).forEach(key => {
+          if (['age', 'hormonal_status', 'medications', 'skin_conditions', 'dietary_restrictions'].includes(key)) {
+            cleaned[key] = profileData[key];
+          }
+        });
+        break;
+        
+      case 'makeup':
+        // Copy makeup fields
+        Object.keys(profileData).forEach(key => {
+          if (['makeup_frequency', 'preferred_look', 'coverage_preference'].includes(key)) {
+            cleaned[key] = profileData[key];
+          }
+        });
+        break;
+        
+      default:
+        // For other sections, copy all fields
+        Object.assign(cleaned, profileData);
+    }
+    
+    return cleaned;
+  }
+
+  // Profile Management
+  async updateSkinProfile(skinData: any): Promise<any> {
+    const cleanedData = this.cleanProfileData(skinData, 'skin');
+    console.log('Original skin data:', skinData);
+    console.log('Cleaned skin data being sent:', cleanedData);
+    const response = await apiClient.put('/profile/beauty/skin', cleanedData);
+    return response.data;
+  }
+
+  async updateLifestyleProfile(lifestyleData: any): Promise<any> {
+    const cleanedData = this.cleanProfileData(lifestyleData, 'lifestyle');
+    console.log('Original lifestyle data:', lifestyleData);
+    console.log('Cleaned lifestyle data being sent:', cleanedData);
+    const response = await apiClient.put('/profile/beauty/lifestyle', cleanedData);
+    return response.data;
+  }
+
+  async updateHairProfile(hairData: any): Promise<any> {
+    const cleanedData = this.cleanProfileData(hairData, 'hair');
+    console.log('Cleaned hair data being sent:', cleanedData);
+    const response = await apiClient.put('/profile/beauty/hair', cleanedData);
+    return response.data;
+  }
+
+  async updateHealthProfile(healthData: any): Promise<any> {
+    const cleanedData = this.cleanProfileData(healthData, 'health');
+    console.log('Cleaned health data being sent:', cleanedData);
+    const response = await apiClient.put('/profile/beauty/health', cleanedData);
+    return response.data;
+  }
+
+  async updateMakeupProfile(makeupData: any): Promise<any> {
+    const cleanedData = this.cleanProfileData(makeupData, 'makeup');
+    console.log('Cleaned makeup data being sent:', cleanedData);
+    const response = await apiClient.put('/profile/beauty/makeup', cleanedData);
+    return response.data;
+  }
+
+  // Photo Upload & Analysis
+  async uploadPhoto(file: File): Promise<UploadResponse> {
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('photo_type', 'onboarding');
+
+    const response = await apiClient.post('/photo/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
   }
 
   async getAnalysisStatus(sessionId: string): Promise<AnalysisResponse> {
-    await delay(800); // Simulate processing time
-    
-    let progress = this.analysisProgress[sessionId] || 0;
-    
-    // Simulate progressive analysis
-    if (progress < 100) {
-      progress += Math.random() * 15 + 10; // Random progress increment
-      this.analysisProgress[sessionId] = Math.min(progress, 100);
-    }
+    const response = await apiClient.get(`/photo/status/${sessionId}`);
+    return response.data;
+  }
 
-    const steps = [
-      'Detecting facial features...',
-      'Identifying skin characteristics...',
-      'Analyzing skin tone and texture...',
-      'Detecting skin concerns...',
-      'Evaluating facial structure...',
-      'Processing skin health indicators...',
-      'Generating personalized insights...',
-      'Matching products to your profile...',
-      'Finalizing recommendations...',
-      'Analysis complete!'
-    ];
+  // Recommendations
+  async getRecommendations(): Promise<RecommendationsResponse> {
+    const response = await apiClient.get('/recommendations/beauty');
+    return response.data;
+  }
 
-    const stepIndex = Math.floor((progress / 100) * (steps.length - 1));
-    const currentStep = steps[stepIndex];
+  async submitFeedback(feedbackData: {
+    recommendation_id: string;
+    product_id: string;
+    feedback_type: 'positive' | 'negative' | 'neutral';
+    rating: number;
+    comments?: string;
+  }): Promise<any> {
+    const response = await apiClient.post('/recommendations/feedback', feedbackData);
+    return response.data;
+  }
 
-    if (progress >= 100) {
-      // Generate mock analysis result
-      const analysisResult = this.generateMockAnalysis();
-      this.analysisResults[sessionId] = analysisResult;
+  // Progress Tracking
+  async uploadProgressPhoto(file: File, weekNumber: number): Promise<any> {
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('week_number', weekNumber.toString());
+
+    const response = await apiClient.post('/progress/photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return response.data;
+  }
+
+  async getProgressTimeline(): Promise<any> {
+    const response = await apiClient.get('/progress/timeline');
+    return response.data;
+  }
+
+  // Product Search
+  async searchProducts(query: string, includeIngredients: boolean = true): Promise<any> {
+    const response = await apiClient.post('/search', {
+      query,
+      includeIngredients,
+    });
+    return response.data;
+  }
+
+  // Complete Profile Submission
+  async submitProfile(profile: UserProfile): Promise<{ success: boolean; message: string }> {
+    try {
+      console.log('Full profile object being submitted:', profile);
       
+      // Update all profile sections
+      const promises = [];
+
+      if (profile.skin && Object.keys(profile.skin).length > 0) {
+        console.log('Submitting skin profile:', profile.skin);
+        promises.push(this.updateSkinProfile(profile.skin));
+      }
+
+      if (profile.lifestyle && Object.keys(profile.lifestyle).length > 0) {
+        console.log('Submitting lifestyle profile:', profile.lifestyle);
+        promises.push(this.updateLifestyleProfile(profile.lifestyle));
+      }
+
+      if (profile.hair && Object.keys(profile.hair).length > 0) {
+        console.log('Submitting hair profile:', profile.hair);
+        promises.push(this.updateHairProfile(profile.hair));
+      }
+
+      if (profile.health && Object.keys(profile.health).length > 0) {
+        console.log('Submitting health profile:', profile.health);
+        promises.push(this.updateHealthProfile(profile.health));
+      }
+
+      if (profile.makeup && Object.keys(profile.makeup).length > 0) {
+        console.log('Submitting makeup profile:', profile.makeup);
+        promises.push(this.updateMakeupProfile(profile.makeup));
+      }
+
+      await Promise.all(promises);
+
       return {
         success: true,
-        progress: 100,
-        status: 'complete',
-        step: currentStep,
-        result: analysisResult
+        message: 'Profile saved successfully',
       };
+    } catch (error) {
+      console.error('Error submitting profile:', error);
+      throw error;
     }
-
-    return {
-      success: true,
-      progress: Math.floor(progress),
-      status: 'processing',
-      step: currentStep
-    };
   }
 
-  private generateMockAnalysis(): AnalysisResult {
-    const detectedIssues = [
-      'Mild acne on T-zone',
-      'Dark spots on cheeks',
-      'Under-eye circles',
-      'Slightly enlarged pores on nose'
-    ];
+  // Convert backend recommendations to frontend format
+  async getFormattedRecommendations(): Promise<AnalysisResult> {
+    try {
+      const recommendations = await this.getRecommendations();
+      
+      // Convert backend products to frontend Product format
+      const convertProduct = (backendProduct: any): Product => ({
+        id: backendProduct.product_id,
+        name: backendProduct.product_name,
+        brand: backendProduct.brand,
+        category: 'skincare', // Default to skincare
+        subcategory: backendProduct.product_type,
+        imageUrl: backendProduct.image_url || 'https://via.placeholder.com/400',
+        price: backendProduct.price,
+        size: backendProduct.size || '30ml',
+        ingredients: backendProduct.key_ingredients || [],
+        keyIngredients: backendProduct.key_ingredients || [],
+        benefits: [backendProduct.recommendation_reason],
+        targetConcerns: [],
+        applicationArea: backendProduct.face_coordinates?.highlight_regions || [],
+        usage: {
+          frequency: backendProduct.usage_instructions || 'Daily',
+          time: backendProduct.step === 1 ? 'morning' : 'evening',
+          amount: 'As directed',
+          instructions: backendProduct.usage_instructions || '',
+        },
+        rating: 4.5,
+        reviews: Math.floor(Math.random() * 1000) + 100,
+      });
 
-    // Select 4-6 products based on detected issues
-    const selectedProducts = mockProducts.slice(0, 5);
-    
-    const recommendations: ProductRecommendation[] = selectedProducts.map((product, index) => ({
-      product,
-      score: 95 - (index * 3), // Descending scores
-      reason: this.generateRecommendationReason(product, detectedIssues),
-      applicationPoints: [],
-      priority: index + 1
-    }));
+      // Convert routine products
+      const allProducts: ProductRecommendation[] = [];
+      let priority = 1;
 
-    return {
-      faceAnalysis: {
-        detectedIssues,
-        skinTone: 'Medium with warm undertones',
-        faceShape: 'Oval',
-        confidence: 0.92
-      },
-      recommendations,
-      routineSuggestion: {
-        morning: recommendations.filter(r => r.product.usage.time === 'morning' || r.product.usage.time === 'both').map(r => r.product),
-        evening: recommendations.filter(r => r.product.usage.time === 'evening' || r.product.usage.time === 'both').map(r => r.product)
-      },
-      personalizedAdvice: [
-        'Focus on consistent use of salicylic acid for acne control',
-        'Vitamin C in the morning will help fade dark spots over time',
-        'Never skip sunscreen to prevent new pigmentation',
-        'Use gentle, non-comedogenic products to avoid clogging pores',
-        'Consider adding a retinoid product after 4-6 weeks for enhanced results'
-      ]
-    };
-  }
+      // Process morning routine
+      recommendations.data.routine.morning.forEach((product: any) => {
+        allProducts.push({
+          product: convertProduct(product),
+          score: 95 - (priority * 2),
+          reason: product.recommendation_reason,
+          priority: priority++,
+        });
+      });
 
-  private generateRecommendationReason(product: Product, issues: string[]): string {
-    const reasons: { [key: string]: { [key: string]: string } } = {
-      'serum': {
-        'Clarifying Salicylic Acid Serum': 'Perfect for your oily T-zone and acne concerns - salicylic acid penetrates pores to clear breakouts',
-        'Brightening Vitamin C Serum': 'High-potency vitamin C will fade your dark spots and brighten overall complexion'
-      },
-      'sunscreen': {
-        'Lightweight SPF 50+ Gel Sunscreen': 'Essential for preventing further dark spots, gel formula perfect for oily skin'
-      },
-      'eye cream': {
-        'Eye Brightening Caffeine Cream': 'Caffeine and peptides specifically target your under-eye circles and puffiness'
-      },
-      'moisturizer': {
-        'Hydrating Hyaluronic Acid Moisturizer': 'Lightweight hydration that won\'t clog pores while maintaining skin barrier'
-      },
-      'cleanser': {
-        'Gentle Foaming Cleanser': 'Removes excess oil and impurities without over-drying your skin'
-      }
-    };
+      // Process evening routine
+      recommendations.data.routine.evening.forEach((product: any) => {
+        allProducts.push({
+          product: convertProduct(product),
+          score: 95 - (priority * 2),
+          reason: product.recommendation_reason,
+          priority: priority++,
+        });
+      });
 
-    return reasons[product.subcategory]?.[product.name] || `Specially selected for your skin type and concerns`;
-  }
+      // Create analysis result
+      const analysisResult: AnalysisResult = {
+        faceAnalysis: {
+          detectedIssues: recommendations.data.ai_insights.lifestyle_tips || [],
+          skinTone: 'Medium with warm undertones',
+          faceShape: 'Oval',
+          confidence: 0.92,
+        },
+        recommendations: allProducts,
+        routineSuggestion: {
+          morning: recommendations.data.routine.morning.map(convertProduct),
+          evening: recommendations.data.routine.evening.map(convertProduct),
+        },
+        personalizedAdvice: recommendations.data.ai_insights.lifestyle_tips || [],
+      };
 
-  async submitProfile(profile: UserProfile): Promise<{ success: boolean; message: string }> {
-    await delay(500);
-    
-    return {
-      success: true,
-      message: 'Profile saved successfully'
-    };
+      return analysisResult;
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      throw error;
+    }
   }
 }
 
-const mockAPI = new MockBeautyAPI();
-export default mockAPI; 
+const beautyAPI = new BeautyAPI();
+export default beautyAPI; 

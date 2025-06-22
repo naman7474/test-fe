@@ -7,19 +7,19 @@ import useStore from './store';
 // Import components
 import LoginSignup from './pages/LoginSignup';
 import Landing from './pages/Landing';
-import EditableMobileForm from './components/onboarding/EditableMobileForm';
-import PhotoUploadPage from './pages/PhotoUploadPage';
-import MinimalResults from './pages/EnhancedMinimalResults';
+import Onboarding from './pages/Onboarding';
+import FaceAnalysis from './pages/FaceAnalysis';
+import Results from './pages/Results';
 import EnhancedLoadingScreen from './components/common/EnhancedLoadingScreen';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const authToken = localStorage.getItem('authToken');
+  return authToken ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 function App() {
-  const { isLoading, photoPreview } = useStore();
+  const { isLoading, loadingMessage } = useStore();
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -34,16 +34,15 @@ function App() {
   return (
     <Router>
       <div className="App">
-        {/* Enhanced loading screen when analyzing photo */}
+        {/* Loading overlay */}
         <AnimatePresence>
-          {isLoading && photoPreview && (
-            <EnhancedLoadingScreen 
-              imageUrl={photoPreview} 
-              onComplete={() => {
-                // Navigate to results after loading
-                window.location.href = '/results';
-              }}
-            />
+          {isLoading && (
+            <div className="fixed inset-0 z-50 bg-beauty-black/90 backdrop-blur-sm flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-beauty-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-beauty-gray-400">{loadingMessage || 'Loading...'}</p>
+              </div>
+            </div>
           )}
         </AnimatePresence>
 
@@ -59,17 +58,17 @@ function App() {
           } />
           <Route path="/onboarding" element={
             <ProtectedRoute>
-              <EditableMobileForm />
+              <Onboarding />
             </ProtectedRoute>
           } />
-          <Route path="/photo-upload" element={
+          <Route path="/analysis" element={
             <ProtectedRoute>
-              <PhotoUploadPage />
+              <FaceAnalysis />
             </ProtectedRoute>
           } />
           <Route path="/results" element={
             <ProtectedRoute>
-              <MinimalResults />
+              <Results />
             </ProtectedRoute>
           } />
           
