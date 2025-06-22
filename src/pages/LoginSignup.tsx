@@ -11,7 +11,8 @@ const LoginSignup: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,16 +30,17 @@ const LoginSignup: React.FC = () => {
         updateUserProfile(user);
         navigate('/');
       } else {
-        // Signup
-        if (!name || !email || !password) {
+        // Signup validation
+        if (!firstName || !lastName || !email || !password) {
           setError('Please fill all fields');
           setIsLoading(false);
           return;
         }
         
-        const { token, user } = await beautyAPI.signup(email, password, name);
+        const fullName = `${firstName} ${lastName}`;
+        const { token, user } = await beautyAPI.signup(email, password, firstName, lastName);
         localStorage.setItem('authToken', token);
-        localStorage.setItem('userName', name);
+        localStorage.setItem('userName', fullName);
         updateUserProfile(user);
         navigate('/onboarding');
       }
@@ -123,14 +125,24 @@ const LoginSignup: React.FC = () => {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
+                  className="space-y-4"
                 >
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
-                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="First Name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Last Name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+                    />
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

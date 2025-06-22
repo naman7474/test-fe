@@ -131,8 +131,13 @@ class BeautyAPI {
     return { token, user };
   }
 
-  async signup(email: string, password: string, name: string): Promise<{ token: string; user: UserProfile }> {
-    const response = await apiClient.post('/auth/signup', { email, password, name });
+  async signup(email: string, password: string, firstName: string, lastName: string): Promise<{ token: string; user: UserProfile }> {
+    const response = await apiClient.post('/auth/register', { 
+      email, 
+      password, 
+      first_name: firstName,  // Backend expects first_name
+      last_name: lastName     // Backend expects last_name
+    });
     const { token, user } = response.data.data;
     localStorage.setItem('authToken', token);
     return { token, user };
@@ -157,63 +162,254 @@ class BeautyAPI {
     // Handle each section differently based on expected backend fields
     switch (section) {
       case 'skin':
-        // Map any legacy field names to correct ones
-        if (profileData.skin_type) cleaned.skin_type = profileData.skin_type;
-        if (profileData.skin_tone) cleaned.skin_tone = profileData.skin_tone;
-        if (profileData.undertone) cleaned.undertone = profileData.undertone;
-        if (profileData.sensitivity_level) cleaned.sensitivity_level = profileData.sensitivity_level;
-        if (profileData.allergies) cleaned.allergies = profileData.allergies;
+        // Map legacy field names to correct backend field names
         
-        // Handle primary_concerns - check for both current and legacy field names
+        // skin_type mapping
+        if (profileData.skin_type) {
+          cleaned.skin_type = profileData.skin_type;
+        } else if (profileData.skinType) {
+          cleaned.skin_type = profileData.skinType;
+        }
+        
+        // skin_tone mapping
+        if (profileData.skin_tone) {
+          cleaned.skin_tone = profileData.skin_tone;
+        } else if (profileData.skinTone) {
+          cleaned.skin_tone = profileData.skinTone;
+        }
+        
+        // undertone mapping
+        if (profileData.undertone) {
+          cleaned.undertone = profileData.undertone;
+        }
+        
+        // sensitivity_level mapping
+        if (profileData.sensitivity_level) {
+          cleaned.sensitivity_level = profileData.sensitivity_level;
+        } else if (profileData.skinSensitivity) {
+          cleaned.sensitivity_level = profileData.skinSensitivity;
+        }
+        
+        // allergies mapping
+        if (profileData.allergies) {
+          cleaned.allergies = Array.isArray(profileData.allergies) ? profileData.allergies : [profileData.allergies];
+        }
+        
+        // primary_concerns mapping - handle multiple legacy field names
         if (profileData.primary_concerns) {
-          cleaned.primary_concerns = profileData.primary_concerns;
+          cleaned.primary_concerns = Array.isArray(profileData.primary_concerns) ? profileData.primary_concerns : [profileData.primary_concerns];
         } else if (profileData.primary_skin_concerns) {
-          cleaned.primary_concerns = profileData.primary_skin_concerns;
+          cleaned.primary_concerns = Array.isArray(profileData.primary_skin_concerns) ? profileData.primary_skin_concerns : [profileData.primary_skin_concerns];
         } else if (profileData.skinConcerns) {
-          cleaned.primary_concerns = profileData.skinConcerns;
+          cleaned.primary_concerns = Array.isArray(profileData.skinConcerns) ? profileData.skinConcerns : [profileData.skinConcerns];
+        } else if (profileData.skin_concerns) {
+          cleaned.primary_concerns = Array.isArray(profileData.skin_concerns) ? profileData.skin_concerns : [profileData.skin_concerns];
         }
         break;
         
       case 'lifestyle':
-        // Copy all lifestyle fields as they should be correct
-        Object.keys(profileData).forEach(key => {
-          if (['location', 'climate_type', 'pollution_level', 'sun_exposure', 'sleep_hours', 'stress_level', 'exercise_frequency', 'water_intake'].includes(key)) {
-            cleaned[key] = profileData[key];
-          }
-        });
+        // Map lifestyle fields with legacy support
+        
+        // location mapping
+        if (profileData.location) {
+          cleaned.location = profileData.location;
+        }
+        
+        // climate_type mapping
+        if (profileData.climate_type) {
+          cleaned.climate_type = profileData.climate_type;
+        } else if (profileData.climateType) {
+          cleaned.climate_type = profileData.climateType;
+        }
+        
+        // pollution_level mapping
+        if (profileData.pollution_level) {
+          cleaned.pollution_level = profileData.pollution_level;
+        } else if (profileData.pollutionLevel) {
+          cleaned.pollution_level = profileData.pollutionLevel;
+        }
+        
+        // sun_exposure mapping
+        if (profileData.sun_exposure) {
+          cleaned.sun_exposure = profileData.sun_exposure;
+        } else if (profileData.sunExposure) {
+          cleaned.sun_exposure = profileData.sunExposure;
+        }
+        
+        // sleep_hours mapping
+        if (profileData.sleep_hours !== undefined) {
+          cleaned.sleep_hours = parseInt(profileData.sleep_hours);
+        } else if (profileData.sleepHours !== undefined) {
+          cleaned.sleep_hours = parseInt(profileData.sleepHours);
+        }
+        
+        // stress_level mapping
+        if (profileData.stress_level) {
+          cleaned.stress_level = profileData.stress_level;
+        } else if (profileData.stressLevel) {
+          cleaned.stress_level = profileData.stressLevel;
+        }
+        
+        // exercise_frequency mapping
+        if (profileData.exercise_frequency) {
+          cleaned.exercise_frequency = profileData.exercise_frequency;
+        } else if (profileData.exerciseFrequency) {
+          cleaned.exercise_frequency = profileData.exerciseFrequency;
+        }
+        
+        // water_intake mapping
+        if (profileData.water_intake) {
+          cleaned.water_intake = profileData.water_intake;
+        } else if (profileData.waterIntake) {
+          cleaned.water_intake = profileData.waterIntake;
+        }
         break;
         
       case 'hair':
-        // Copy hair fields
-        Object.keys(profileData).forEach(key => {
-          if (['hair_type', 'hair_texture', 'scalp_condition', 'primary_concerns', 'chemical_treatments', 'styling_frequency'].includes(key)) {
-            cleaned[key] = profileData[key];
-          }
-        });
+        // Map hair fields with legacy support
+        
+        // hair_type mapping
+        if (profileData.hair_type) {
+          cleaned.hair_type = profileData.hair_type;
+        } else if (profileData.hairType) {
+          cleaned.hair_type = profileData.hairType;
+        }
+        
+        // hair_texture mapping
+        if (profileData.hair_texture) {
+          cleaned.hair_texture = profileData.hair_texture;
+        } else if (profileData.hairTexture) {
+          cleaned.hair_texture = profileData.hairTexture;
+        }
+        
+        // scalp_condition mapping
+        if (profileData.scalp_condition) {
+          cleaned.scalp_condition = profileData.scalp_condition;
+        } else if (profileData.scalpCondition) {
+          cleaned.scalp_condition = profileData.scalpCondition;
+        }
+        
+        // primary_concerns mapping for hair
+        if (profileData.primary_concerns) {
+          cleaned.primary_concerns = Array.isArray(profileData.primary_concerns) ? profileData.primary_concerns : [profileData.primary_concerns];
+        } else if (profileData.hairConcerns) {
+          cleaned.primary_concerns = Array.isArray(profileData.hairConcerns) ? profileData.hairConcerns : [profileData.hairConcerns];
+        } else if (profileData.hair_concerns) {
+          cleaned.primary_concerns = Array.isArray(profileData.hair_concerns) ? profileData.hair_concerns : [profileData.hair_concerns];
+        }
+        
+        // chemical_treatments mapping
+        if (profileData.chemical_treatments) {
+          cleaned.chemical_treatments = Array.isArray(profileData.chemical_treatments) ? profileData.chemical_treatments : [profileData.chemical_treatments];
+        } else if (profileData.chemicalTreatments) {
+          cleaned.chemical_treatments = Array.isArray(profileData.chemicalTreatments) ? profileData.chemicalTreatments : [profileData.chemicalTreatments];
+        }
+        
+        // styling_frequency mapping
+        if (profileData.styling_frequency) {
+          cleaned.styling_frequency = profileData.styling_frequency;
+        } else if (profileData.stylingFrequency) {
+          cleaned.styling_frequency = profileData.stylingFrequency;
+        }
         break;
         
       case 'health':
-        // Copy health fields
-        Object.keys(profileData).forEach(key => {
-          if (['age', 'hormonal_status', 'medications', 'skin_conditions', 'dietary_restrictions'].includes(key)) {
-            cleaned[key] = profileData[key];
-          }
-        });
+        // Map health fields with legacy support
+        
+        // age mapping
+        if (profileData.age !== undefined) {
+          cleaned.age = parseInt(profileData.age);
+        }
+        
+        // hormonal_status mapping
+        if (profileData.hormonal_status) {
+          cleaned.hormonal_status = profileData.hormonal_status;
+        } else if (profileData.hormonalStatus) {
+          cleaned.hormonal_status = profileData.hormonalStatus;
+        }
+        
+        // medications mapping
+        if (profileData.medications) {
+          cleaned.medications = Array.isArray(profileData.medications) ? profileData.medications : [profileData.medications];
+        }
+        
+        // skin_conditions mapping
+        if (profileData.skin_conditions) {
+          cleaned.skin_conditions = Array.isArray(profileData.skin_conditions) ? profileData.skin_conditions : [profileData.skin_conditions];
+        } else if (profileData.skinConditions) {
+          cleaned.skin_conditions = Array.isArray(profileData.skinConditions) ? profileData.skinConditions : [profileData.skinConditions];
+        }
+        
+        // dietary_restrictions mapping
+        if (profileData.dietary_restrictions) {
+          cleaned.dietary_restrictions = Array.isArray(profileData.dietary_restrictions) ? profileData.dietary_restrictions : [profileData.dietary_restrictions];
+        } else if (profileData.dietaryRestrictions) {
+          cleaned.dietary_restrictions = Array.isArray(profileData.dietaryRestrictions) ? profileData.dietaryRestrictions : [profileData.dietaryRestrictions];
+        }
         break;
         
       case 'makeup':
-        // Copy makeup fields
-        Object.keys(profileData).forEach(key => {
-          if (['makeup_frequency', 'preferred_look', 'coverage_preference'].includes(key)) {
-            cleaned[key] = profileData[key];
-          }
-        });
+        // Map makeup fields with legacy support
+        
+        // makeup_frequency mapping
+        if (profileData.makeup_frequency) {
+          cleaned.makeup_frequency = profileData.makeup_frequency;
+        } else if (profileData.makeupFrequency) {
+          cleaned.makeup_frequency = profileData.makeupFrequency;
+        }
+        
+        // preferred_look mapping
+        if (profileData.preferred_look) {
+          cleaned.preferred_look = profileData.preferred_look;
+        } else if (profileData.preferredLook) {
+          cleaned.preferred_look = profileData.preferredLook;
+        }
+        
+        // coverage_preference mapping
+        if (profileData.coverage_preference) {
+          cleaned.coverage_preference = profileData.coverage_preference;
+        } else if (profileData.coveragePreference) {
+          cleaned.coverage_preference = profileData.coveragePreference;
+        }
+        break;
+        
+      case 'preferences':
+        // Map preferences fields with legacy support
+        
+        // budget_range mapping
+        if (profileData.budget_range) {
+          cleaned.budget_range = profileData.budget_range;
+        } else if (profileData.budgetRange) {
+          cleaned.budget_range = profileData.budgetRange;
+        }
+        
+        // brand_preference mapping
+        if (profileData.brand_preference) {
+          cleaned.brand_preference = profileData.brand_preference;
+        } else if (profileData.brandPreference) {
+          cleaned.brand_preference = profileData.brandPreference;
+        }
+        
+        // ingredient_preference mapping
+        if (profileData.ingredient_preference) {
+          cleaned.ingredient_preference = Array.isArray(profileData.ingredient_preference) ? profileData.ingredient_preference : [profileData.ingredient_preference];
+        } else if (profileData.ingredientPreference) {
+          cleaned.ingredient_preference = Array.isArray(profileData.ingredientPreference) ? profileData.ingredientPreference : [profileData.ingredientPreference];
+        }
         break;
         
       default:
-        // For other sections, copy all fields
+        // For unknown sections, copy all fields as-is
         Object.assign(cleaned, profileData);
     }
+    
+    // Remove any null, undefined, or empty values
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === null || cleaned[key] === undefined || cleaned[key] === '' || 
+          (Array.isArray(cleaned[key]) && cleaned[key].length === 0)) {
+        delete cleaned[key];
+      }
+    });
     
     return cleaned;
   }
