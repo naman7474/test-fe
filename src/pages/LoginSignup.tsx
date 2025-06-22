@@ -16,6 +16,39 @@ const LoginSignup: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Password validation states
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [passwordValidation, setPasswordValidation] = useState({
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumbers: false,
+    hasSpecialChar: false,
+    hasMinLength: false,
+  });
+
+  const validatePassword = (pass: string) => {
+    const validation = {
+      hasUpperCase: /[A-Z]/.test(pass),
+      hasLowerCase: /[a-z]/.test(pass),
+      hasNumbers: /\d/.test(pass),
+      hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(pass),
+      hasMinLength: pass.length >= 8,
+    };
+    setPasswordValidation(validation);
+  };
+
+  const isPasswordValid = () => {
+    return Object.values(passwordValidation).every(Boolean);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+    if (!isLogin) {
+      validatePassword(newPassword);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -24,9 +57,14 @@ const LoginSignup: React.FC = () => {
     try {
       if (isLogin) {
         // Login
+        console.log('Attempting login...');
         const { token, user } = await beautyAPI.login(email, password);
         localStorage.setItem('authToken', token);
-        localStorage.setItem('userName', user.name || email);
+        // Handle both name and first_name/last_name from backend
+        const userName = (user as any).name || 
+          `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim() || 
+          user.email || email;
+        localStorage.setItem('userName', userName);
         updateUserProfile(user);
         navigate('/');
       } else {
@@ -36,7 +74,14 @@ const LoginSignup: React.FC = () => {
           setIsLoading(false);
           return;
         }
+
+        if (!isPasswordValid()) {
+          setError('Password does not meet requirements');
+          setIsLoading(false);
+          return;
+        }
         
+        console.log('Attempting signup...');
         const fullName = `${firstName} ${lastName}`;
         const { token, user } = await beautyAPI.signup(email, password, firstName, lastName);
         localStorage.setItem('authToken', token);
@@ -46,13 +91,7 @@ const LoginSignup: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Authentication error:', err);
-      if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else if (err.message) {
-        setError(err.message);
-      } else {
-        setError(isLogin ? 'Invalid email or password' : 'Failed to create account');
-      }
+      setError(err.message || (isLogin ? 'Login failed' : 'Registration failed'));
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +173,7 @@ const LoginSignup: React.FC = () => {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+                      required={!isLogin}
                     />
                     <input
                       type="text"
@@ -141,6 +181,7 @@ const LoginSignup: React.FC = () => {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+                      required={!isLogin}
                     />
                   </div>
                 </motion.div>
@@ -153,27 +194,86 @@ const LoginSignup: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+              required
             />
 
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
-            />
+            <div className="relative">
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={handlePasswordChange}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                className="w-full px-4 py-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-white placeholder-beauty-gray-500 focus:outline-none focus:border-beauty-accent transition-colors"
+                required
+              />
+
+              {/* Password requirements for signup */}
+              <AnimatePresence>
+                {!isLogin && passwordFocused && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 right-0 mt-2 p-3 bg-beauty-charcoal border border-beauty-gray-800 rounded-lg text-xs"
+                  >
+                    <p className="text-beauty-gray-400 mb-2">Password must contain:</p>
+                    <div className="space-y-1">
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasMinLength ? 'text-green-400' : 'text-beauty-gray-400'}`}>
+                        <span>{passwordValidation.hasMinLength ? '✓' : '○'}</span>
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasUpperCase ? 'text-green-400' : 'text-beauty-gray-400'}`}>
+                        <span>{passwordValidation.hasUpperCase ? '✓' : '○'}</span>
+                        <span>One uppercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasLowerCase ? 'text-green-400' : 'text-beauty-gray-400'}`}>
+                        <span>{passwordValidation.hasLowerCase ? '✓' : '○'}</span>
+                        <span>One lowercase letter</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasNumbers ? 'text-green-400' : 'text-beauty-gray-400'}`}>
+                        <span>{passwordValidation.hasNumbers ? '✓' : '○'}</span>
+                        <span>One number</span>
+                      </div>
+                      <div className={`flex items-center gap-2 ${passwordValidation.hasSpecialChar ? 'text-green-400' : 'text-beauty-gray-400'}`}>
+                        <span>{passwordValidation.hasSpecialChar ? '✓' : '○'}</span>
+                        <span>One special character</span>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Error message */}
             <AnimatePresence>
               {error && (
-                <motion.p
+                <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="text-red-400 text-sm text-center"
+                  className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg"
                 >
-                  {error}
-                </motion.p>
+                  <p className="text-red-400 text-sm">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Demo credentials hint */}
+            <AnimatePresence>
+              {isLogin && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-3 bg-beauty-accent/10 border border-beauty-accent/20 rounded-lg"
+                >
+                  <p className="text-beauty-accent text-xs">
+                    <strong>Demo Account:</strong><br />
+                    Email: testuser123@example.com<br />
+                    Password: Password123!
+                  </p>
+                </motion.div>
               )}
             </AnimatePresence>
 
@@ -181,7 +281,7 @@ const LoginSignup: React.FC = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || (!isLogin && !isPasswordValid())}
               className="w-full btn-primary py-3 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (

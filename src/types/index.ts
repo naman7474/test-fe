@@ -1,50 +1,55 @@
 // User Profile Types
 export interface SkinProfile {
-  skin_type?: 'dry' | 'oily' | 'combination' | 'normal' | 'sensitive';
+  skin_type?: 'dry' | 'oily' | 'combination' | 'normal';
   skin_tone?: 'fair' | 'light' | 'medium' | 'tan' | 'deep';
   undertone?: 'warm' | 'cool' | 'neutral';
-  primary_concerns?: string[];
-  sensitivity_level?: 'low' | 'medium' | 'high';
-  allergies?: string[];
+  primary_skin_concerns?: string[];
+  secondary_skin_concerns?: string[];
+  skin_sensitivity_level?: 'low' | 'medium' | 'high';
+  known_allergies?: string[];
 }
 
 export interface HairProfile {
   hair_type?: 'straight' | 'wavy' | 'curly' | 'coily';
   hair_texture?: 'fine' | 'medium' | 'thick';
-  scalp_condition?: 'dry' | 'oily' | 'normal' | 'flaky' | 'sensitive';
-  primary_concerns?: string[];
+  hair_porosity?: 'low' | 'medium' | 'high';
+  scalp_condition?: 'dry' | 'oily' | 'normal' | 'sensitive';
+  hair_concerns?: string[];
   chemical_treatments?: string[];
-  styling_frequency?: 'daily' | 'weekly' | '2-3_times_week' | 'rarely' | 'never';
 }
 
 export interface LifestyleProfile {
-  location?: string;
-  climate_type?: 'humid' | 'dry' | 'tropical' | 'temperate' | 'cold' | 'variable';
-  pollution_level?: 'low' | 'moderate' | 'high' | 'very_high';
-  sun_exposure?: 'minimal' | 'low' | 'moderate' | 'high' | 'very_high';
-  sleep_hours?: number;
-  stress_level?: 'low' | 'moderate' | 'high' | 'very_high';
-  exercise_frequency?: 'daily' | '3_times_week' | 'weekly' | 'rarely' | 'never';
-  water_intake?: 'less_than_4' | '4-6_glasses' | '6-8_glasses' | 'more_than_8';
+  location_city?: string;
+  location_country?: string;
+  climate_type?: 'tropical' | 'dry' | 'temperate' | 'continental' | 'polar';
+  pollution_level?: 'low' | 'moderate' | 'high' | 'severe';
+  sun_exposure_daily?: 'minimal' | 'low' | 'moderate' | 'high';
+  sleep_hours_avg?: number;
+  stress_level?: 'low' | 'moderate' | 'high' | 'severe';
+  exercise_frequency?: 'never' | 'rarely' | 'weekly' | '3_times_week' | 'daily';
+  water_intake_daily?: number;
 }
 
 export interface HealthProfile {
   age?: number;
-  hormonal_status?: 'normal' | 'pregnancy' | 'postpartum' | 'menopause' | 'pcos' | 'thyroid_issues' | 'hormonal_acne';
+  hormonal_status?: 'normal' | 'pregnancy' | 'breastfeeding' | 'menopause' | 'pcos' | 'thyroid';
   medications?: string[];
-  skin_conditions?: string[];
-  dietary_restrictions?: string[];
+  skin_medical_conditions?: string[];
+  dietary_type?: 'omnivore' | 'vegetarian' | 'vegan' | 'pescatarian';
+  supplements?: string[];
 }
 
 export interface MakeupProfile {
-  makeup_frequency?: 'daily' | 'often' | 'occasionally' | 'rarely' | 'never';
-  preferred_look?: 'natural' | 'minimal' | 'glam' | 'bold' | 'professional';
-  coverage_preference?: 'sheer' | 'light' | 'medium' | 'full';
+  makeup_frequency?: 'never' | 'special_occasions' | 'weekly' | 'daily' | 'multiple_daily';
+  preferred_look?: 'natural' | 'professional' | 'glam' | 'dramatic' | 'artistic';
+  coverage_preference?: 'none' | 'light' | 'medium' | 'full';
+  budget_range?: 'budget' | 'mid_range' | 'luxury' | 'mixed';
+  favorite_brands?: string[];
 }
 
 export interface PreferencesProfile {
-  budget_range?: 'under_1000' | '1000_3000' | '3000_5000' | '5000_10000' | 'above_10000';
-  brand_preference?: 'luxury' | 'premium' | 'drugstore' | 'indie' | 'no_preference';
+  budget_range?: 'budget' | 'mid_range' | 'luxury' | 'mixed';
+  favorite_brands?: string[];
   ingredient_preference?: string[];
 }
 

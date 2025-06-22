@@ -12,6 +12,8 @@ export interface FieldConfig {
   currency?: string;
   customAllowed?: boolean;
   isArray?: boolean;
+  step?: number;
+  unit?: string;
 }
 
 export interface ProfileSection {
@@ -33,7 +35,7 @@ export const profileSchema: ProfileSchema = {
       label: 'Skin Type',
       type: 'select',
       required: true,
-      options: ['dry', 'oily', 'combination', 'normal', 'sensitive'],
+      options: ['dry', 'oily', 'combination', 'normal'],
       description: 'Your primary skin type'
     },
     skin_tone: {
@@ -50,63 +52,34 @@ export const profileSchema: ProfileSchema = {
       options: ['warm', 'cool', 'neutral'],
       description: 'Your skin undertone'
     },
-    primary_concerns: {
+    primary_skin_concerns: {
       label: 'Primary Skin Concerns',
       type: 'multiselect',
       required: true,
-      minItems: 1,
-      maxItems: 5,
-      options: [
-        'acne',
-        'dark_spots',
-        'wrinkles',
-        'fine_lines',
-        'hyperpigmentation',
-        'redness',
-        'large_pores',
-        'blackheads',
-        'whiteheads',
-        'dullness',
-        'uneven_texture',
-        'dark_circles',
-        'puffiness',
-        'sensitivity',
-        'dryness',
-        'oiliness',
-        'sun_damage',
-        'melasma'
-      ],
-      description: 'Select your main skin concerns (1-5)'
+      options: ['acne', 'dark_spots', 'wrinkles', 'dryness', 'oiliness', 'sensitivity', 'uneven_tone', 'large_pores', 'blackheads', 'whiteheads'],
+      description: 'Your main skin concerns'
     },
-    sensitivity_level: {
+    secondary_skin_concerns: {
+      label: 'Secondary Skin Concerns',
+      type: 'multiselect',
+      required: false,
+      options: ['acne', 'dark_spots', 'wrinkles', 'dryness', 'oiliness', 'sensitivity', 'uneven_tone', 'large_pores', 'blackheads', 'whiteheads'],
+      description: 'Additional skin concerns (optional)'
+    },
+    skin_sensitivity_level: {
       label: 'Skin Sensitivity Level',
       type: 'select',
       required: true,
       options: ['low', 'medium', 'high'],
       description: 'How sensitive is your skin?'
     },
-    allergies: {
-      label: 'Known Allergies/Ingredients to Avoid',
+    known_allergies: {
+      label: 'Known Allergies',
       type: 'multiselect',
       required: false,
-      options: [
-        'fragrance',
-        'alcohol',
-        'sulfates',
-        'parabens',
-        'mineral_oil',
-        'retinol',
-        'salicylic_acid',
-        'glycolic_acid',
-        'vitamin_c',
-        'niacinamide',
-        'essential_oils',
-        'lanolin',
-        'formaldehyde',
-        'phthalates'
-      ],
+      options: ['fragrance', 'alcohol', 'sulfates', 'parabens', 'retinoids', 'aha_bha', 'vitamin_c', 'niacinamide'],
       customAllowed: true,
-      description: 'Select or add ingredients you\'re allergic to'
+      description: 'Any known ingredient allergies'
     }
   },
 
@@ -114,118 +87,112 @@ export const profileSchema: ProfileSchema = {
     hair_type: {
       label: 'Hair Type',
       type: 'select',
-      required: false,
+      required: true,
       options: ['straight', 'wavy', 'curly', 'coily'],
-      description: 'Your hair pattern type'
+      description: 'Your natural hair pattern'
     },
     hair_texture: {
       label: 'Hair Texture',
       type: 'select',
-      required: false,
+      required: true,
       options: ['fine', 'medium', 'thick'],
       description: 'The thickness of individual hair strands'
+    },
+    hair_porosity: {
+      label: 'Hair Porosity',
+      type: 'select',
+      required: false,
+      options: ['low', 'medium', 'high'],
+      description: 'How well your hair absorbs moisture (optional)'
     },
     scalp_condition: {
       label: 'Scalp Condition',
       type: 'select',
-      required: false,
-      options: ['dry', 'oily', 'normal', 'flaky', 'sensitive'],
-      description: 'Your scalp condition'
+      required: true,
+      options: ['dry', 'oily', 'normal', 'sensitive'],
+      description: 'Your scalp type and condition'
     },
-    primary_concerns: {
+    hair_concerns: {
       label: 'Hair Concerns',
       type: 'multiselect',
-      required: false,
-      maxItems: 5,
-      options: [
-        'hair_fall',
-        'dandruff',
-        'frizz',
-        'dryness',
-        'oiliness',
-        'damage',
-        'split_ends',
-        'thinning',
-        'slow_growth',
-        'color_fading',
-        'lack_of_volume',
-        'tangles'
-      ],
-      description: 'Select your main hair concerns'
+      required: true,
+      options: ['hair_fall', 'dandruff', 'dryness', 'oiliness', 'frizz', 'breakage', 'thinning', 'scalp_irritation'],
+      description: 'Your main hair and scalp concerns'
     },
     chemical_treatments: {
       label: 'Chemical Treatments',
       type: 'multiselect',
       required: false,
-      options: ['color', 'bleach', 'keratin', 'relaxer', 'perm', 'none'],
-      description: 'Any chemical treatments on your hair'
-    },
-    styling_frequency: {
-      label: 'Heat Styling Frequency',
-      type: 'select',
-      required: false,
-      options: ['daily', 'weekly', '2-3_times_week', 'rarely', 'never'],
-      description: 'How often do you use heat styling tools?'
+      options: ['color', 'bleach', 'keratin', 'perm', 'relaxer', 'highlights'],
+      description: 'Recent chemical treatments on your hair'
     }
   },
 
   lifestyle: {
-    location: {
-      label: 'Location',
+    location_city: {
+      label: 'City',
       type: 'text',
       required: true,
-      placeholder: 'City, Country',
-      description: 'Your current location (e.g., Mumbai, India)'
+      description: 'Your current city'
+    },
+    location_country: {
+      label: 'Country',
+      type: 'text',
+      required: true,
+      description: 'Your current country'
     },
     climate_type: {
       label: 'Climate Type',
       type: 'select',
       required: true,
-      options: ['humid', 'dry', 'tropical', 'temperate', 'cold', 'variable'],
-      description: 'Your local climate'
+      options: ['tropical', 'dry', 'temperate', 'continental', 'polar'],
+      description: 'The climate where you live'
     },
     pollution_level: {
       label: 'Pollution Level',
       type: 'select',
       required: true,
-      options: ['low', 'moderate', 'high', 'very_high'],
+      options: ['low', 'moderate', 'high', 'severe'],
       description: 'Air pollution level in your area'
     },
-    sun_exposure: {
+    sun_exposure_daily: {
       label: 'Daily Sun Exposure',
       type: 'select',
       required: true,
-      options: ['minimal', 'low', 'moderate', 'high', 'very_high'],
-      description: 'Average daily sun exposure'
+      options: ['minimal', 'low', 'moderate', 'high'],
+      description: 'How much sun exposure do you get daily?'
     },
-    sleep_hours: {
+    sleep_hours_avg: {
       label: 'Average Sleep Hours',
       type: 'number',
       required: true,
-      min: 3,
+      min: 4,
       max: 12,
-      description: 'Hours of sleep per night'
+      step: 0.5,
+      description: 'Average hours of sleep per night'
     },
     stress_level: {
       label: 'Stress Level',
       type: 'select',
       required: true,
-      options: ['low', 'moderate', 'high', 'very_high'],
-      description: 'Your general stress level'
+      options: ['low', 'moderate', 'high', 'severe'],
+      description: 'Your typical stress level'
     },
     exercise_frequency: {
       label: 'Exercise Frequency',
       type: 'select',
       required: true,
-      options: ['daily', '3_times_week', 'weekly', 'rarely', 'never'],
+      options: ['never', 'rarely', 'weekly', '3_times_week', 'daily'],
       description: 'How often do you exercise?'
     },
-    water_intake: {
+    water_intake_daily: {
       label: 'Daily Water Intake',
-      type: 'select',
+      type: 'number',
       required: false,
-      options: ['less_than_4', '4-6_glasses', '6-8_glasses', 'more_than_8'],
-      description: 'Glasses of water per day'
+      min: 1,
+      max: 20,
+      unit: 'glasses',
+      description: 'Number of glasses of water per day'
     }
   },
 
@@ -233,84 +200,87 @@ export const profileSchema: ProfileSchema = {
     age: {
       label: 'Age',
       type: 'number',
-      required: false,
+      required: true,
       min: 13,
       max: 100,
-      description: 'Your age'
+      description: 'Your current age'
     },
     hormonal_status: {
       label: 'Hormonal Status',
       type: 'select',
       required: false,
-      options: [
-        'normal',
-        'pregnancy',
-        'postpartum',
-        'menopause',
-        'pcos',
-        'thyroid_issues',
-        'hormonal_acne'
-      ],
-      description: 'Any hormonal conditions'
+      options: ['normal', 'pregnancy', 'breastfeeding', 'menopause', 'pcos', 'thyroid'],
+      description: 'Any hormonal conditions affecting your skin'
     },
     medications: {
       label: 'Current Medications',
-      type: 'text',
+      type: 'multiselect',
       required: false,
-      isArray: true,
-      description: 'List any medications affecting skin/hair'
+      options: ['birth_control', 'blood_pressure', 'acne_medication', 'hormone_therapy', 'antibiotics', 'antidepressants', 'other'],
+      customAllowed: true,
+      description: 'Medications that might affect your skin'
     },
-    skin_conditions: {
+    skin_medical_conditions: {
       label: 'Skin Medical Conditions',
       type: 'multiselect',
       required: false,
-      options: [
-        'eczema',
-        'psoriasis',
-        'rosacea',
-        'dermatitis',
-        'vitiligo',
-        'none'
-      ],
+      options: ['eczema', 'psoriasis', 'rosacea', 'dermatitis', 'melasma', 'vitiligo', 'keratosis_pilaris', 'seborrheic_dermatitis'],
+      customAllowed: true,
       description: 'Any diagnosed skin conditions'
     },
-    dietary_restrictions: {
+    dietary_type: {
       label: 'Dietary Type',
+      type: 'select',
+      required: false,
+      options: ['omnivore', 'vegetarian', 'vegan', 'pescatarian'],
+      description: 'Your dietary preferences'
+    },
+    supplements: {
+      label: 'Supplements',
       type: 'multiselect',
       required: false,
-      options: [
-        'vegetarian',
-        'vegan',
-        'gluten_free',
-        'dairy_free',
-        'keto',
-        'omnivore'
-      ],
-      description: 'Your dietary preferences/restrictions'
+      options: ['vitamin_c', 'vitamin_d', 'vitamin_e', 'biotin', 'collagen', 'omega_3', 'zinc', 'iron'],
+      customAllowed: true,
+      description: 'Supplements you take regularly'
     }
   },
 
   makeup: {
     makeup_frequency: {
-      label: 'Makeup Usage Frequency',
+      label: 'Makeup Frequency',
       type: 'select',
-      required: false,
-      options: ['daily', 'often', 'occasionally', 'rarely', 'never'],
+      required: true,
+      options: ['never', 'special_occasions', 'weekly', 'daily', 'multiple_daily'],
       description: 'How often do you wear makeup?'
     },
     preferred_look: {
-      label: 'Preferred Makeup Look',
+      label: 'Preferred Look',
       type: 'select',
       required: false,
-      options: ['natural', 'minimal', 'glam', 'bold', 'professional'],
-      description: 'Your go-to makeup style'
+      options: ['natural', 'professional', 'glam', 'dramatic', 'artistic'],
+      description: 'Your preferred makeup style'
     },
     coverage_preference: {
       label: 'Coverage Preference',
       type: 'select',
       required: false,
-      options: ['sheer', 'light', 'medium', 'full'],
-      description: 'Preferred foundation coverage'
+      options: ['none', 'light', 'medium', 'full'],
+      description: 'Preferred foundation coverage level'
+    },
+    budget_range: {
+      label: 'Budget Range',
+      type: 'select',
+      required: false,
+      options: ['budget', 'mid_range', 'luxury', 'mixed'],
+      description: 'Your typical budget for beauty products'
+    },
+    favorite_brands: {
+      label: 'Favorite Brands',
+      type: 'multiselect',
+      required: false,
+      options: ['l_oreal', 'maybelline', 'revlon', 'covergirl', 'neutrogena', 'cetaphil', 'cerave', 'la_roche_posay', 'clinique', 'estee_lauder'],
+      customAllowed: true,
+      description: 'Brands you prefer or trust'
     }
   },
 
@@ -319,22 +289,31 @@ export const profileSchema: ProfileSchema = {
       label: 'Monthly Beauty Budget',
       type: 'select',
       required: true,
-      options: [
-        'under_1000',
-        '1000_3000',
-        '3000_5000',
-        '5000_10000',
-        'above_10000'
-      ],
-      currency: 'INR',
-      description: 'Monthly budget for beauty products'
+      options: ['budget', 'mid_range', 'luxury', 'mixed'],
+      description: 'Your overall beauty budget preference'
     },
-    brand_preference: {
-      label: 'Brand Preference',
-      type: 'select',
+    favorite_brands: {
+      label: 'Favorite Beauty Brands',
+      type: 'multiselect',
       required: false,
-      options: ['luxury', 'premium', 'drugstore', 'indie', 'no_preference'],
-      description: 'Preferred brand category'
+      options: [
+        'The Ordinary',
+        'CeraVe',
+        'Neutrogena',
+        'Olay',
+        'Clinique',
+        'Estee Lauder',
+        'SK-II',
+        'Drunk Elephant',
+        'Paula\'s Choice',
+        'Minimalist',
+        'Plum',
+        'Mamaearth',
+        'Biotique',
+        'Forest Essentials'
+      ],
+      customAllowed: true,
+      description: 'Select your preferred beauty brands'
     },
     ingredient_preference: {
       label: 'Ingredient Preference',
