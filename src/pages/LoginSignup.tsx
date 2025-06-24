@@ -7,7 +7,7 @@ import useStore from '../store';
 
 const LoginSignup: React.FC = () => {
   const navigate = useNavigate();
-  const { updateUserProfile } = useStore();
+  const { updateUserProfile, setUserStatus } = useStore();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,7 +66,33 @@ const LoginSignup: React.FC = () => {
           user.email || email;
         localStorage.setItem('userName', userName);
         updateUserProfile(user);
-        navigate('/');
+        
+        // Check onboarding status for existing users
+        try {
+          const onboardingStatus = await beautyAPI.getOnboardingProgress();
+          
+          // Update store with user status
+          setUserStatus(
+            onboardingStatus.steps.profile.complete && onboardingStatus.steps.photo.uploaded,
+            onboardingStatus.steps.recommendations.generated
+          );
+          
+          // Navigate based on user status
+          if (onboardingStatus.steps.recommendations.generated) {
+            // User has completed everything, go to results
+            navigate('/results');
+          } else if (onboardingStatus.steps.profile.complete) {
+            // Profile complete but no photo/recommendations, go to photo upload
+            navigate('/onboarding', { state: { step: 'photo' } });
+          } else {
+            // New user or incomplete profile, start onboarding
+            navigate('/onboarding');
+          }
+        } catch (error) {
+          console.error('Failed to check onboarding status:', error);
+          // Default to landing page if status check fails
+          navigate('/');
+        }
       } else {
         // Signup validation
         if (!firstName || !lastName || !email || !password) {
@@ -87,6 +113,9 @@ const LoginSignup: React.FC = () => {
         localStorage.setItem('authToken', token);
         localStorage.setItem('userName', fullName);
         updateUserProfile(user);
+        
+        // New users always go to onboarding
+        setUserStatus(false, false);
         navigate('/onboarding');
       }
     } catch (err: any) {

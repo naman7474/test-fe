@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import useStore from '../store';
 import ScrollBasedForm from '../components/onboarding/ScrollBasedForm';
@@ -9,9 +9,18 @@ import beautyAPI from '../services/api';
 
 const Onboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { currentStep, setCurrentStep, markStepComplete, setLoading, photoPreview, userProfile } = useStore();
+  const location = useLocation();
+  const { currentStep, setCurrentStep, markStepComplete, setLoading, photoPreview, userProfile, setUserStatus } = useStore();
   const [isValid, setIsValid] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if we should jump to photo step (from login redirect)
+  React.useEffect(() => {
+    if (location.state?.step === 'photo') {
+      setCurrentStep('photo');
+    }
+  }, [location.state, setCurrentStep]);
 
   const formSteps: FormStepInfo[] = [
     { step: 'skin', title: 'Skin Profile', description: 'Help us understand your skin', icon: '🧴' },
@@ -26,6 +35,7 @@ const Onboarding: React.FC = () => {
 
   const handleNext = async () => {
     markStepComplete(currentStep);
+    setError(null);
 
     if (currentStep === 'photo' && photoPreview) {
       // Submit profile data before proceeding to analysis
@@ -33,10 +43,15 @@ const Onboarding: React.FC = () => {
       
       try {
         await beautyAPI.submitProfile(userProfile);
+        
+        // Mark onboarding as complete
+        setUserStatus(true, false);
+        
         setLoading(true, 'Preparing your photo for analysis...');
         navigate('/analysis');
       } catch (error) {
         console.error('Failed to save profile:', error);
+        setError('Failed to save profile. Please try again.');
         setLoading(false);
         return;
       }
@@ -48,19 +63,33 @@ const Onboarding: React.FC = () => {
         await beautyAPI.submitProfile(userProfile);
         setLoading(true, 'Generating recommendations based on your profile...');
         
+        // Mark onboarding as complete (without photo)
+        setUserStatus(true, false);
+        
         // Check onboarding status after profile submission
         const onboardingStatus = await beautyAPI.getOnboardingProgress();
         
         if (onboardingStatus.steps.recommendations.generated) {
+          setUserStatus(true, true);
           navigate('/results');
         } else {
           // If recommendations aren't generated yet, wait a bit
-          setTimeout(() => {
-            navigate('/results');
+          setTimeout(async () => {
+            try {
+              const status = await beautyAPI.getOnboardingProgress();
+              if (status.steps.recommendations.generated) {
+                setUserStatus(true, true);
+              }
+              navigate('/results');
+            } catch (error) {
+              console.error('Failed to check recommendation status:', error);
+              navigate('/results');
+            }
           }, 2000);
         }
       } catch (error) {
         console.error('Failed to save profile:', error);
+        setError('Failed to save profile. Please try again.');
         setLoading(false);
         return;
       }

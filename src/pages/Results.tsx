@@ -15,46 +15,69 @@ const Results: React.FC = () => {
     setSelectedProduct,
     productDetailOpen,
     setProductDetailOpen,
-    setAnalysisResult 
+    setAnalysisResult,
+    clearAnalysisResult,
+    hasRecommendations,
+    lastAnalysisDate 
   } = useStore();
   
   const [recommendations, setRecommendations] = useState<ProductRecommendation[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'morning' | 'evening'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        // Check if we already have recommendations in the store
+        // Check if we have cached recommendations that are recent (less than 24 hours old)
         const currentAnalysisResult = useStore.getState().analysisResult;
+        const cachedDate = useStore.getState().lastAnalysisDate;
         
-        if (currentAnalysisResult?.recommendations) {
-          setRecommendations(currentAnalysisResult.recommendations);
-          setIsLoading(false);
-          return;
+        if (currentAnalysisResult?.recommendations && cachedDate) {
+          const cacheAge = Date.now() - new Date(cachedDate).getTime();
+          const ONE_DAY = 24 * 60 * 60 * 1000;
+          
+          if (cacheAge < ONE_DAY) {
+            setRecommendations(currentAnalysisResult.recommendations);
+            setIsLoading(false);
+            return;
+          }
         }
 
         // Otherwise, fetch from backend
         setIsLoading(true);
+        setError(null);
+        
         const result = await beautyAPI.getFormattedRecommendations();
         setAnalysisResult(result);
         setRecommendations(result.recommendations);
         setIsLoading(false);
       } catch (err) {
         console.error('Failed to fetch recommendations:', err);
-        setError('Failed to load recommendations. Please try again.');
-        setIsLoading(false);
         
-        // If not authenticated, redirect to login
+        // If it's a 401 error, redirect to login
         if ((err as any).response?.status === 401) {
           navigate('/login');
+          return;
+        }
+
+        // Retry logic
+        if (retryCount < MAX_RETRIES) {
+          setRetryCount(retryCount + 1);
+          setTimeout(() => {
+            fetchRecommendations();
+          }, 2000 * (retryCount + 1)); // Exponential backoff
+        } else {
+          setError('Unable to load recommendations. Please check your connection and try again.');
+          setIsLoading(false);
         }
       }
     };
 
     fetchRecommendations();
-  }, [setAnalysisResult, navigate]);
+  }, [setAnalysisResult, navigate, retryCount]);
 
   const handleProductClick = (product: any) => {
     setSelectedProduct(product);
@@ -64,7 +87,18 @@ const Results: React.FC = () => {
   const handleStartOver = () => {
     // Reset store and navigate to landing
     useStore.getState().resetUserProfile();
-    navigate('/');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userName');
+    navigate('/login');
+  };
+
+  const handleRefresh = () => {
+    setError(null);
+    setRetryCount(0);
+    setIsLoading(true);
+    // Force refetch by clearing cache
+    clearAnalysisResult();
+    window.location.reload();
   };
 
   const filteredRecommendations = recommendations.filter(rec => {
@@ -75,47 +109,79 @@ const Results: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-beauty-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-beauty-accent border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-beauty-gray-400">Loading your recommendations...</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="animate-spin w-12 h-12 border-3 border-beauty-accent border-t-transparent rounded-full mx-auto mb-6"></div>
+          <p className="text-beauty-gray-300 text-lg mb-2">Loading your personalized routine...</p>
+          {retryCount > 0 && (
+            <p className="text-beauty-gray-500 text-sm">
+              Retry attempt {retryCount} of {MAX_RETRIES}
+            </p>
+          )}
+        </motion.div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-400 mb-4">
-            <svg className="w-12 h-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <p className="text-red-300 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-primary"
-          >
-            Try Again
-          </button>
-        </div>
+          <h2 className="text-2xl font-semibold text-white mb-3">Oops! Something went wrong</h2>
+          <p className="text-red-300 mb-6">{error}</p>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => navigate('/onboarding')}
+              className="px-6 py-3 bg-beauty-gray-800 hover:bg-beauty-gray-700 text-white rounded-lg transition-colors"
+            >
+              Back to Profile
+            </button>
+            <button
+              onClick={handleRefresh}
+              className="px-6 py-3 bg-beauty-accent hover:bg-beauty-accent/90 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </motion.div>
       </div>
     );
   }
 
   if (!analysisResult || recommendations.length === 0) {
     return (
-      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-beauty-gray-400 mb-4">No recommendations available yet.</p>
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="w-20 h-20 bg-beauty-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">📋</span>
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-3">No Recommendations Yet</h2>
+          <p className="text-beauty-gray-400 mb-6 max-w-md">
+            Complete your profile and upload a photo to get personalized beauty recommendations.
+          </p>
           <button
             onClick={() => navigate('/onboarding')}
             className="btn-primary"
           >
             Complete Your Profile
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }

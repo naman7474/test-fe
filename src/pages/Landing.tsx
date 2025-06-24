@@ -1,12 +1,49 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import useStore from '../store';
+import beautyAPI from '../services/api';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { hasRecommendations, setUserStatus, setLoading } = useStore();
+
+  useEffect(() => {
+    const checkUserStatus = async () => {
+      try {
+        setLoading(true, 'Checking your profile...');
+        
+        // Check if user has completed onboarding
+        const onboardingStatus = await beautyAPI.getOnboardingProgress();
+        
+        // Update store with user status
+        setUserStatus(
+          onboardingStatus.steps.profile.complete && onboardingStatus.steps.photo.uploaded,
+          onboardingStatus.steps.recommendations.generated
+        );
+        
+        // If user has recommendations, redirect to results
+        if (onboardingStatus.steps.recommendations.generated) {
+          navigate('/results', { replace: true });
+        }
+      } catch (error) {
+        console.error('Failed to check user status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Check status when component mounts
+    checkUserStatus();
+  }, [navigate, setUserStatus, setLoading]);
 
   const handleGetStarted = () => {
-    navigate('/onboarding');
+    // If user has recommendations, go to results, otherwise start onboarding
+    if (hasRecommendations) {
+      navigate('/results');
+    } else {
+      navigate('/onboarding');
+    }
   };
 
   return (
