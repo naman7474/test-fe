@@ -10,7 +10,7 @@ import LoginSignup from './pages/LoginSignup';
 import Landing from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import FaceAnalysis from './pages/FaceAnalysis';
-import Results from './pages/Results';
+import EnhancedMinimalResults from './pages/EnhancedMinimalResults';
 import EnhancedLoadingScreen from './components/common/EnhancedLoadingScreen';
 
 // Initialization Component
@@ -125,7 +125,7 @@ function App() {
             } />
             <Route path="/results" element={
               <ProtectedRoute>
-                <Results />
+                <EnhancedMinimalResults />
               </ProtectedRoute>
             } />
             

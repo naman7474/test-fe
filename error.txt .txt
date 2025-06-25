@@ -1,0 +1,171 @@
+ERROR in src/App.tsx:6:23
+TS2307: Cannot find module './services/api' or its corresponding type declarations.
+    4 | import { AnimatePresence } from 'framer-motion';
+    5 | import useStore from './store';
+  > 6 | import beautyAPI from './services/api';
+      |                       ^^^^^^^^^^^^^^^^
+    7 |
+    8 | // Import components
+    9 | import LoginSignup from './pages/LoginSignup';
+ERROR in src/components/results/ProductCard.tsx:31:8
+TS18048: 'priority' is possibly 'undefined'.
+    29 |     >
+    30 |       {/* Priority badge */}
+  > 31 |       {priority <= 3 && (
+       |        ^^^^^^^^
+    32 |         <div className="absolute -top-2 -right-2 z-10">
+    33 |           <div className="w-8 h-8 bg-beauty-accent rounded-full flex items-center justify-center">
+    34 |             <span className="text-beauty-black font-bold text-sm">#{priority}</span>
+ERROR in src/pages/EnhancedMinimalResults.tsx:24:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    22 |     category: 'Cleanser',
+    23 |     color: 'from-blue-500/20 to-blue-600/20',
+  > 24 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    25 |       id: '1',
+    26 |       name: 'Gentle Foam Cleanser',
+    27 |       brand: 'PureGlow',
+ERROR in src/pages/EnhancedMinimalResults.tsx:51:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    49 |     category: 'Moisturizer',
+    50 |     color: 'from-purple-500/20 to-purple-600/20',
+  > 51 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    52 |       id: '2',
+    53 |       name: 'Hydra-Balance Gel',
+    54 |       brand: 'AquaDerm',
+ERROR in src/pages/EnhancedMinimalResults.tsx:78:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    76 |     category: 'Serum',
+    77 |     color: 'from-pink-500/20 to-pink-600/20',
+  > 78 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    79 |       id: '3',
+    80 |       name: 'Brightening C+ Serum',
+    81 |       brand: 'GlowLab',
+ERROR in src/pages/EnhancedMinimalResults.tsx:105:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    103 |     category: 'Sunscreen',
+    104 |     color: 'from-yellow-500/20 to-orange-500/20',
+  > 105 |     bestProduct: {
+        |     ^^^^^^^^^^^
+    106 |       id: '4',
+    107 |       name: 'Invisible Shield SPF 50',
+    108 |       brand: 'SunGuard',
+ERROR in src/pages/EnhancedResults.tsx:21:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    19 |     icon: '🧼',
+    20 |     color: 'from-blue-400 to-blue-600',
+  > 21 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    22 |       id: '1',
+    23 |       name: 'Gentle Foam Cleanser',
+    24 |       brand: 'PureGlow',
+ERROR in src/pages/EnhancedResults.tsx:50:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    48 |     icon: '💧',
+    49 |     color: 'from-purple-400 to-purple-600',
+  > 50 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    51 |       id: '2',
+    52 |       name: 'Hydra-Balance Gel Cream',
+    53 |       brand: 'AquaDerm',
+ERROR in src/pages/EnhancedResults.tsx:77:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    75 |     icon: '✨',
+    76 |     color: 'from-pink-400 to-pink-600',
+  > 77 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    78 |       id: '3',
+    79 |       name: 'Brightening C+ Serum',
+    80 |       brand: 'GlowLab',
+ERROR in src/pages/EnhancedResults.tsx:104:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    102 |     icon: '☀️',
+    103 |     color: 'from-yellow-400 to-orange-500',
+  > 104 |     bestProduct: {
+        |     ^^^^^^^^^^^
+    105 |       id: '4',
+    106 |       name: 'Invisible Shield SPF 50',
+    107 |       brand: 'SunGuard',
+ERROR in src/pages/FaceAnalysis.tsx:5:23
+TS2307: Cannot find module '../services/api' or its corresponding type declarations.
+    3 | import { useNavigate } from 'react-router-dom';
+    4 | import useStore from '../store';
+  > 5 | import beautyAPI from '../services/api';
+      |                       ^^^^^^^^^^^^^^^^^
+    6 | import EnhancedLoadingScreen from '../components/common/EnhancedLoadingScreen';
+    7 |
+    8 | const FaceAnalysis: React.FC = () => {
+ERROR in src/pages/Landing.tsx:5:23
+TS2307: Cannot find module '../services/api' or its corresponding type declarations.
+    3 | import { useNavigate } from 'react-router-dom';
+    4 | import useStore from '../store';
+  > 5 | import beautyAPI from '../services/api';
+      |                       ^^^^^^^^^^^^^^^^^
+    6 |
+    7 | const Landing = () => {
+    8 |   const navigate = useNavigate();
+ERROR in src/pages/LoginSignup.tsx:5:23
+TS2307: Cannot find module '../services/api' or its corresponding type declarations.
+    3 | import { motion, AnimatePresence } from 'framer-motion';
+    4 | import { useNavigate } from 'react-router-dom';
+  > 5 | import beautyAPI from '../services/api';
+      |                       ^^^^^^^^^^^^^^^^^
+    6 | import useStore from '../store';
+    7 |
+    8 | const LoginSignup: React.FC = () => {
+ERROR in src/pages/MinimalResults.tsx:20:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    18 |   {
+    19 |     category: 'Cleanser',
+  > 20 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    21 |       id: '1',
+    22 |       name: 'Gentle Foam Cleanser',
+    23 |       brand: 'PureGlow',
+ERROR in src/pages/MinimalResults.tsx:45:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    43 |   {
+    44 |     category: 'Moisturizer',
+  > 45 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    46 |       id: '2',
+    47 |       name: 'Hydra-Balance Gel',
+    48 |       brand: 'AquaDerm',
+ERROR in src/pages/MinimalResults.tsx:70:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    68 |   {
+    69 |     category: 'Serum',
+  > 70 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    71 |       id: '3',
+    72 |       name: 'Brightening C+ Serum',
+    73 |       brand: 'GlowLab',
+ERROR in src/pages/MinimalResults.tsx:95:5
+TS2739: Type '{ id: string; name: string; brand: string; category: "skincare"; subcategory: string; imageUrl: string; price: number; size: string; ingredients: string[]; keyIngredients: string[]; benefits: string[]; targetConcerns: string[]; applicationArea: string[]; usage: { ...; }; }' is missing the following properties from type 'Product': product_id, product_name, product_type, key_ingredients
+    93 |   {
+    94 |     category: 'Sunscreen',
+  > 95 |     bestProduct: {
+       |     ^^^^^^^^^^^
+    96 |       id: '4',
+    97 |       name: 'Invisible Shield SPF 50',
+    98 |       brand: 'SunGuard',
+ERROR in src/pages/Onboarding.tsx:8:23
+TS2307: Cannot find module '../services/api' or its corresponding type declarations.
+     6 | import PhotoUpload from '../components/landing/PhotoUpload';
+     7 | import { FormStep, FormStepInfo } from '../types';
+  >  8 | import beautyAPI from '../services/api';
+       |                       ^^^^^^^^^^^^^^^^^
+     9 |
+    10 | const Onboarding: React.FC = () => {
+    11 |   const navigate = useNavigate();
+ERROR in src/pages/Results.tsx:6:23
+TS2307: Cannot find module '../services/api' or its corresponding type declarations.
+    4 | import useStore from '../store';
+    5 | import { ProductRecommendation } from '../types';
+  > 6 | import beautyAPI from '../services/api';
+      |                       ^^^^^^^^^^^^^^^^^
+    7 |
+    8 | const Results: React.FC = () => {
+    9 |   const navigate = useNavigate();

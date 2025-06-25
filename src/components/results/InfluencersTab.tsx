@@ -1,7 +1,8 @@
 // src/components/results/InfluencersTab.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../../types';
+import beautyAPI from '../../services/api';
 
 interface Influencer {
   id: string;
@@ -24,147 +25,107 @@ interface InfluencerVideo {
   product: Product;
 }
 
-// Mock influencer data
-const mockInfluencers: Influencer[] = [
-  {
-    id: '1',
-    name: 'Sarah Chen',
-    handle: '@glowwithsarah',
-    profileImage: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    followers: '124K',
-    skinType: 'Oily',
-    skinConcerns: ['Acne', 'Dark Spots'],
-    bio: 'Skincare enthusiast sharing my journey to clear skin',
-    videos: [
-      {
-        id: 'v1',
-        thumbnail: 'https://images.unsplash.com/photo-1612817288484-6f916006741a?w=300',
-        title: 'My Morning Routine for Oily Skin',
-        views: '45K',
-        duration: '8:24',
-        product: {
-          id: 'p1',
-          name: 'Gentle Foam Cleanser',
-          brand: 'PureGlow',
-          category: 'skincare',
-          subcategory: 'cleanser',
-          imageUrl: '',
-          price: 24.99,
-          size: '150ml',
-          ingredients: ['Salicylic Acid'],
-          keyIngredients: ['2% Salicylic Acid'],
-          benefits: ['Deep cleansing'],
-          targetConcerns: ['oily skin'],
-          applicationArea: ['face'],
-          usage: { frequency: 'Daily', time: 'both', amount: 'Pea-sized', instructions: 'Massage and rinse' },
-        }
-      },
-      {
-        id: 'v2',
-        thumbnail: 'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=300',
-        title: 'How I Faded My Dark Spots',
-        views: '89K',
-        duration: '12:15',
-        product: {
-          id: 'p2',
-          name: 'Brightening C+ Serum',
-          brand: 'GlowLab',
-          category: 'skincare',
-          subcategory: 'serum',
-          imageUrl: '',
-          price: 58.00,
-          size: '30ml',
-          ingredients: ['Vitamin C'],
-          keyIngredients: ['20% Vitamin C'],
-          benefits: ['Brightening'],
-          targetConcerns: ['dark spots'],
-          applicationArea: ['face'],
-          usage: { frequency: 'Daily', time: 'morning', amount: '3-4 drops', instructions: 'Apply before SPF' },
-        }
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Maya Patel',
-    handle: '@mayaskinjourney',
-    profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    followers: '89K',
-    skinType: 'Combination',
-    skinConcerns: ['Large Pores', 'Texture'],
-    bio: 'Dermatology student • Evidence-based skincare',
-    videos: [
-      {
-        id: 'v3',
-        thumbnail: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=300',
-        title: 'The Science of Pore Minimizing',
-        views: '67K',
-        duration: '15:30',
-        product: {
-          id: 'p3',
-          name: 'Pore Refining Toner',
-          brand: 'ClearSkin',
-          category: 'skincare',
-          subcategory: 'toner',
-          imageUrl: '',
-          price: 32.00,
-          size: '200ml',
-          ingredients: ['BHA', 'Niacinamide'],
-          keyIngredients: ['2% BHA'],
-          benefits: ['Pore minimizing'],
-          targetConcerns: ['large pores'],
-          applicationArea: ['face'],
-          usage: { frequency: 'Daily', time: 'evening', amount: 'Few drops', instructions: 'Apply with cotton pad' },
-        }
-      }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Alex Kim',
-    handle: '@alexglowup',
-    profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-    followers: '201K',
-    skinType: 'Sensitive',
-    skinConcerns: ['Redness', 'Dehydration'],
-    bio: 'Men\'s skincare advocate • Simple routines that work',
-    videos: [
-      {
-        id: 'v4',
-        thumbnail: 'https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=300',
-        title: 'Skincare for Sensitive Skin',
-        views: '102K',
-        duration: '10:45',
-        product: {
-          id: 'p4',
-          name: 'Calming Gel Moisturizer',
-          brand: 'SensiCare',
-          category: 'skincare',
-          subcategory: 'moisturizer',
-          imageUrl: '',
-          price: 38.00,
-          size: '50ml',
-          ingredients: ['Centella', 'Ceramides'],
-          keyIngredients: ['Centella Asiatica'],
-          benefits: ['Calming', 'Hydrating'],
-          targetConcerns: ['sensitivity'],
-          applicationArea: ['face'],
-          usage: { frequency: 'Daily', time: 'both', amount: '2 pumps', instructions: 'Gently pat into skin' },
-        }
-      }
-    ]
-  }
-];
+// Real influencer data will be fetched from API
 
 const InfluencersTab: React.FC = () => {
   const [selectedInfluencer, setSelectedInfluencer] = useState<Influencer | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<InfluencerVideo | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch real influencer data from API
+  useEffect(() => {
+    const fetchInfluencers = async () => {
+      try {
+        setIsLoading(true);
+        const response = await beautyAPI.getRecommendedInfluencers();
+        
+        // Transform API data to component format
+        const transformedInfluencers: Influencer[] = response.influencers.map(apiInfluencer => ({
+          id: apiInfluencer.id,
+          name: apiInfluencer.name,
+          handle: apiInfluencer.handle,
+          profileImage: apiInfluencer.profile_image,
+          followers: apiInfluencer.followers_count,
+          skinType: apiInfluencer.skin_type,
+          skinConcerns: apiInfluencer.skin_concerns,
+          bio: apiInfluencer.bio,
+          videos: apiInfluencer.recent_recommendations?.map((rec, index) => ({
+            id: `v_${rec.product_id}`,
+            thumbnail: `https://images.unsplash.com/photo-${1500000000000 + index}?w=300`,
+            title: `How I use ${rec.product_name}`,
+            views: `${Math.floor(Math.random() * 100) + 10}K`,
+            duration: `${Math.floor(Math.random() * 10) + 5}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+            product: {
+              id: rec.product_id,
+              product_id: rec.product_id,
+              product_name: rec.product_name,
+              name: rec.product_name,
+              brand: 'Featured Brand',
+              product_type: 'skincare',
+              category: 'skincare',
+              subcategory: 'product',
+              imageUrl: 'https://via.placeholder.com/300x300?text=Product',
+              image_url: 'https://via.placeholder.com/300x300?text=Product',
+              price: Math.floor(Math.random() * 50) + 20,
+              size: '50ml',
+              ingredients: ['Water', 'Active Ingredient'],
+              key_ingredients: ['Active Ingredient'],
+              keyIngredients: ['Active Ingredient'],
+              benefits: ['Improves skin condition'],
+              targetConcerns: ['skin concerns'],
+              applicationArea: ['face'],
+              usage: { frequency: 'Daily', time: 'both', amount: 'As needed', instructions: 'Apply as directed' },
+            }
+          })) || []
+        }));
+        
+        setInfluencers(transformedInfluencers);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch influencers:', err);
+        setError('Unable to load influencer recommendations');
+        setIsLoading(false);
+        
+        // Fallback to empty array for now
+        setInfluencers([]);
+      }
+    };
+
+    fetchInfluencers();
+  }, []);
 
   const handleVideoClick = (video: InfluencerVideo) => {
     setSelectedVideo(video);
     setShowProductModal(true);
   };
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-6">
+        <div className="flex items-center justify-center h-40">
+          <div className="animate-spin w-8 h-8 border-2 border-beauty-accent border-t-transparent rounded-full"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || influencers.length === 0) {
+    return (
+      <div className="px-6 py-6">
+        <div className="text-center py-12">
+          <p className="text-beauty-gray-400 mb-4">
+            {error || 'No influencer recommendations available yet.'}
+          </p>
+          <p className="text-beauty-gray-500 text-sm">
+            Complete your profile analysis to get personalized influencer matches.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-6">
@@ -175,7 +136,7 @@ const InfluencersTab: React.FC = () => {
 
       {/* Influencer List */}
       <div className="space-y-6">
-        {mockInfluencers.map((influencer) => (
+        {influencers.map((influencer) => (
           <motion.div
             key={influencer.id}
             initial={{ opacity: 0, y: 20 }}

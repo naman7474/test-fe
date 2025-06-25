@@ -1,12 +1,14 @@
 // src/pages/EnhancedMinimalResults.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Product } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { Product, AnalysisResult } from '../types';
 import ScheduleModal from '../components/results/ScheduleModal';
 import ProfileEditModal from '../components/results/ProfileEditModal';
 import InfluencersTab from '../components/results/InfluencersTab';
 import { getProfileCompletionPercentage } from '../config/profileSchema';
 import useStore from '../store';
+import beautyAPI from '../services/api';
 
 interface CategoryProducts {
   category: string;
@@ -16,131 +18,39 @@ interface CategoryProducts {
   theory: string;
 }
 
-// Enhanced mock data with colors and theory
-const mockCategories: CategoryProducts[] = [
-  {
-    category: 'Cleanser',
-    color: 'from-blue-500/20 to-blue-600/20',
-    bestProduct: {
-      id: '1',
-      name: 'Gentle Foam Cleanser',
-      brand: 'PureGlow',
-      category: 'skincare',
-      subcategory: 'cleanser',
-      imageUrl: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=400',
-      price: 24.99,
-      size: '150ml',
-      ingredients: ['Salicylic Acid', 'Green Tea Extract', 'Aloe Vera'],
-      keyIngredients: ['2% Salicylic Acid'],
-      benefits: ['Deep cleansing', 'Gentle on skin', 'Removes makeup'],
-      targetConcerns: ['oily skin', 'acne'],
-      applicationArea: ['face'],
-      usage: {
-        frequency: 'Daily',
-        time: 'both',
-        amount: 'Pea-sized',
-        instructions: 'Massage onto wet face, rinse thoroughly',
-      },
-    },
-    otherProducts: [],
-    theory: 'Your oily, acne-prone skin produces excess sebum that can clog pores. Salicylic acid is a beta-hydroxy acid that penetrates deep into pores to dissolve oil and dead skin cells, preventing acne formation.',
-  },
-  {
-    category: 'Moisturizer',
-    color: 'from-purple-500/20 to-purple-600/20',
-    bestProduct: {
-      id: '2',
-      name: 'Hydra-Balance Gel',
-      brand: 'AquaDerm',
-      category: 'skincare',
-      subcategory: 'moisturizer',
-      imageUrl: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400',
-      price: 42.00,
-      size: '50ml',
-      ingredients: ['Hyaluronic Acid', 'Niacinamide', 'Ceramides'],
-      keyIngredients: ['Hyaluronic Acid', '5% Niacinamide'],
-      benefits: ['Hydration', 'Oil control', 'Barrier repair'],
-      targetConcerns: ['dehydration', 'oily skin'],
-      applicationArea: ['face', 'neck'],
-      usage: {
-        frequency: 'Daily',
-        time: 'both',
-        amount: '2 pumps',
-        instructions: 'Apply to clean face and neck',
-      },
-    },
-    otherProducts: [],
-    theory: 'Even oily skin needs hydration. This gel formula provides lightweight moisture without clogging pores. Niacinamide helps regulate sebum production while strengthening your skin barrier.',
-  },
-  {
-    category: 'Serum',
-    color: 'from-pink-500/20 to-pink-600/20',
-    bestProduct: {
-      id: '3',
-      name: 'Brightening C+ Serum',
-      brand: 'GlowLab',
-      category: 'skincare',
-      subcategory: 'serum',
-      imageUrl: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400',
-      price: 58.00,
-      size: '30ml',
-      ingredients: ['Vitamin C', 'Vitamin E', 'Ferulic Acid'],
-      keyIngredients: ['20% Vitamin C'],
-      benefits: ['Brightening', 'Anti-aging', 'Even skin tone'],
-      targetConcerns: ['dark spots', 'dullness'],
-      applicationArea: ['face'],
-      usage: {
-        frequency: 'Daily',
-        time: 'morning',
-        amount: '3-4 drops',
-        instructions: 'Apply before moisturizer and SPF',
-      },
-    },
-    otherProducts: [],
-    theory: 'Vitamin C is a powerful antioxidant that inhibits melanin production, helping fade dark spots. Combined with your moderate stress levels, this serum will help combat oxidative stress on your skin.',
-  },
-  {
-    category: 'Sunscreen',
-    color: 'from-yellow-500/20 to-orange-500/20',
-    bestProduct: {
-      id: '4',
-      name: 'Invisible Shield SPF 50',
-      brand: 'SunGuard',
-      category: 'skincare',
-      subcategory: 'sunscreen',
-      imageUrl: 'https://images.unsplash.com/photo-1521223344201-d169129f7b7d?w=400',
-      price: 32.00,
-      size: '50ml',
-      ingredients: ['Zinc Oxide', 'Titanium Dioxide'],
-      keyIngredients: ['SPF 50+', 'PA++++'],
-      benefits: ['Broad spectrum', 'No white cast', 'Water resistant'],
-      targetConcerns: ['sun protection'],
-      applicationArea: ['face', 'exposed areas'],
-      usage: {
-        frequency: 'Daily',
-        time: 'morning',
-        amount: '2 finger lengths',
-        instructions: 'Apply 15 min before sun exposure',
-      },
-    },
-    otherProducts: [],
-    theory: 'UV exposure is the primary cause of dark spots and premature aging. With your existing hyperpigmentation concerns, daily SPF is crucial to prevent further damage and allow treatments to work effectively.',
-  },
-];
+// Helper function to get category color based on product type
+const getCategoryColor = (productType: string): string => {
+  const colorMap: { [key: string]: string } = {
+    'cleanser': 'from-blue-500/20 to-blue-600/20',
+    'moisturizer': 'from-purple-500/20 to-purple-600/20', 
+    'serum': 'from-pink-500/20 to-pink-600/20',
+    'sunscreen': 'from-yellow-500/20 to-orange-500/20',
+    'toner': 'from-green-500/20 to-green-600/20',
+    'mask': 'from-indigo-500/20 to-indigo-600/20',
+    'oil': 'from-orange-500/20 to-orange-600/20',
+  };
+  return colorMap[productType.toLowerCase()] || 'from-gray-500/20 to-gray-600/20';
+};
 
-// Mock analysis result
-const mockAnalysisResult = {
-  summary: 'Based on your profile and photo analysis, we detected oily skin with mild acne in the T-zone and some dark spots on your cheeks. Your lifestyle factors (moderate stress, good hydration) are positive for skin health.',
-  skinScore: 78,
-  concerns: [
-    { issue: 'Excess Oil', severity: 'Moderate', improvement: '+15%' },
-    { issue: 'Dark Spots', severity: 'Mild', improvement: '+10%' },
-    { issue: 'Acne', severity: 'Mild', improvement: '+20%' },
-  ],
+// Helper function to get theory/explanation for each category
+const getCategoryTheory = (productType: string): string => {
+  const theoryMap: { [key: string]: string } = {
+    'cleanser': 'Proper cleansing removes dirt, oil, and impurities while maintaining your skin\'s natural balance. This formula is designed to work with your skin type.',
+    'moisturizer': 'Hydration is essential for all skin types. This moisturizer provides the right balance of hydration without clogging pores.',
+    'serum': 'Serums deliver concentrated active ingredients deep into your skin for targeted treatment of specific concerns.',
+    'sunscreen': 'Daily SPF protection is crucial for preventing premature aging and protecting against harmful UV rays.',
+    'toner': 'Toners help balance your skin\'s pH and prepare it for the next steps in your routine.',
+    'mask': 'Weekly treatments provide deep cleansing and intensive care for your skin.',
+    'oil': 'Face oils help seal in moisture and provide additional nourishment for your skin.',
+  };
+  return theoryMap[productType.toLowerCase()] || 'This product is specially selected to address your specific skin needs and concerns.';
 };
 
 const EnhancedMinimalResults: React.FC = () => {
-  const { userProfile } = useStore();
+  const navigate = useNavigate();
+  const { userProfile, analysisResult, setAnalysisResult } = useStore();
+  
+  // Modal states
   const [selectedCategory, setSelectedCategory] = useState<CategoryProducts | null>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -148,10 +58,115 @@ const EnhancedMinimalResults: React.FC = () => {
   const [scheduleType, setScheduleType] = useState<'morning' | 'evening'>('morning');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  
+  // Data states
+  const [categories, setCategories] = useState<CategoryProducts[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [skinAnalysisSummary, setSkinAnalysisSummary] = useState<any>(null);
+  const [routineData, setRoutineData] = useState<{morning: Product[], evening: Product[]}>({morning: [], evening: []});
 
   const userName = localStorage.getItem('userName') || 'Beautiful';
   const profileCompletionPercentage = getProfileCompletionPercentage(userProfile);
   const isProfileComplete = profileCompletionPercentage === 100;
+
+  // Transform API recommendations into category format
+  const transformToCategories = (apiResult: AnalysisResult): CategoryProducts[] => {
+    const allProducts = [
+      ...apiResult.recommendations.morning,
+      ...apiResult.recommendations.evening,
+      ...apiResult.recommendations.weekly
+    ];
+
+    // Group products by type
+    const productsByType: { [key: string]: Product[] } = {};
+    allProducts.forEach(rec => {
+      const productType = rec.product?.product_type || 'other';
+      if (!productsByType[productType]) {
+        productsByType[productType] = [];
+      }
+      productsByType[productType].push(rec.product);
+    });
+
+    // Convert to CategoryProducts format
+    return Object.keys(productsByType).map(productType => ({
+      category: productType.charAt(0).toUpperCase() + productType.slice(1),
+      color: getCategoryColor(productType),
+      bestProduct: productsByType[productType][0], // Take first/highest priority product
+      otherProducts: productsByType[productType].slice(1),
+      theory: getCategoryTheory(productType)
+    }));
+  };
+
+  // Fetch real API data
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Check if we have cached data
+        if (analysisResult?.recommendations) {
+          const transformedCategories = transformToCategories(analysisResult);
+          setCategories(transformedCategories);
+          
+          // Extract routine data
+          setRoutineData({
+            morning: analysisResult.recommendations.morning.map(rec => rec.product),
+            evening: analysisResult.recommendations.evening.map(rec => rec.product)
+          });
+          
+          setSkinAnalysisSummary({
+            summary: `Based on your profile and analysis, we've identified your skin type as ${analysisResult.skinAnalysis.skinType} with focus areas including ${analysisResult.skinAnalysis.concerns.join(', ')}.`,
+            skinScore: analysisResult.skinAnalysis.score,
+            concerns: analysisResult.skinAnalysis.concerns.map(concern => ({
+              issue: concern,
+              severity: 'Moderate',
+              improvement: '+15%'
+            }))
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Fetch from API
+        const result = await beautyAPI.getFormattedRecommendations();
+        setAnalysisResult(result);
+        
+        const transformedCategories = transformToCategories(result);
+        setCategories(transformedCategories);
+        
+        // Extract routine data
+        setRoutineData({
+          morning: result.recommendations.morning.map(rec => rec.product),
+          evening: result.recommendations.evening.map(rec => rec.product)
+        });
+        
+        setSkinAnalysisSummary({
+          summary: `Based on your profile and analysis, we've identified your skin type as ${result.skinAnalysis.skinType} with focus areas including ${result.skinAnalysis.concerns.join(', ')}.`,
+          skinScore: result.skinAnalysis.score,
+          concerns: result.skinAnalysis.concerns.map(concern => ({
+            issue: concern,
+            severity: 'Moderate', 
+            improvement: '+15%'
+          }))
+        });
+        
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch recommendations:', err);
+        setError('Unable to load your recommendations. Please try again.');
+        setIsLoading(false);
+        
+        // If 401, redirect to login
+        if ((err as any).response?.status === 401) {
+          navigate('/login');
+        }
+      }
+    };
+
+    fetchRecommendations();
+  }, [analysisResult, setAnalysisResult, navigate]);
 
   const handleCategoryClick = (category: CategoryProducts) => {
     setSelectedCategory(category);
@@ -163,6 +178,57 @@ const EnhancedMinimalResults: React.FC = () => {
     setScheduleType(type);
     setShowScheduleModal(true);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="animate-spin w-12 h-12 border-3 border-beauty-accent border-t-transparent rounded-full mx-auto mb-6"></div>
+          <p className="text-beauty-gray-300 text-lg mb-2">Loading your personalized routine...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-beauty-black flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md"
+        >
+          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-semibold text-white mb-3">Oops! Something went wrong</h2>
+          <p className="text-red-300 mb-6">{error}</p>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={() => navigate('/onboarding')}
+              className="px-6 py-3 bg-beauty-gray-800 hover:bg-beauty-gray-700 text-white rounded-lg transition-colors"
+            >
+              Back to Profile
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-beauty-accent hover:bg-beauty-accent/90 text-white rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-beauty-black flex flex-col">
@@ -199,8 +265,9 @@ const EnhancedMinimalResults: React.FC = () => {
           <HomeTab 
             openSchedule={openSchedule}
             handleCategoryClick={handleCategoryClick}
-            mockCategories={mockCategories}
-            analysisResult={mockAnalysisResult}
+            categories={categories}
+            analysisResult={skinAnalysisSummary}
+            routineData={routineData}
           />
         )}
         {activeTab === 'progress' && <ProgressTracker />}
@@ -274,6 +341,7 @@ const EnhancedMinimalResults: React.FC = () => {
           <ScheduleModal
             type={scheduleType}
             onClose={() => setShowScheduleModal(false)}
+            routineProducts={scheduleType === 'morning' ? routineData.morning : routineData.evening}
           />
         )}
         {showProfileModal && (
@@ -290,9 +358,10 @@ const EnhancedMinimalResults: React.FC = () => {
 const HomeTab: React.FC<{
   openSchedule: (type: 'morning' | 'evening') => void;
   handleCategoryClick: (category: CategoryProducts) => void;
-  mockCategories: CategoryProducts[];
+  categories: CategoryProducts[];
   analysisResult: any;
-}> = ({ openSchedule, handleCategoryClick, mockCategories, analysisResult }) => {
+  routineData: { morning: Product[], evening: Product[] };
+}> = ({ openSchedule, handleCategoryClick, categories, analysisResult, routineData }) => {
   return (
     <div className="px-6 py-6">
       {/* Routine Overview with colors */}
@@ -308,7 +377,7 @@ const HomeTab: React.FC<{
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-orange-500/10" />
             <div className="relative">
               <h3 className="font-medium text-white mb-1">Morning</h3>
-              <p className="text-beauty-gray-400 text-sm">4 steps • 5 min</p>
+              <p className="text-beauty-gray-400 text-sm">{routineData.morning.length} steps • {Math.max(3, routineData.morning.length * 2)} min</p>
             </div>
           </motion.button>
           <motion.button
@@ -320,7 +389,7 @@ const HomeTab: React.FC<{
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10" />
             <div className="relative">
               <h3 className="font-medium text-white mb-1">Evening</h3>
-              <p className="text-beauty-gray-400 text-sm">5 steps • 7 min</p>
+              <p className="text-beauty-gray-400 text-sm">{routineData.evening.length} steps • {Math.max(3, routineData.evening.length * 2)} min</p>
             </div>
           </motion.button>
         </div>
@@ -330,7 +399,7 @@ const HomeTab: React.FC<{
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-white mb-4">Your Products</h2>
         <div className="space-y-3">
-          {mockCategories.map((category, index) => (
+          {categories.map((category: CategoryProducts, index: number) => (
             <motion.div
               key={category.category}
               initial={{ opacity: 0, x: -20 }}
@@ -395,6 +464,32 @@ const EnhancedProductModal: React.FC<{
   category: CategoryProducts;
   onClose: () => void;
 }> = ({ product, category, onClose }) => {
+  const [detailedProduct, setDetailedProduct] = useState<Product | null>(product);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      if (product && product.id) {
+        try {
+          setIsLoading(true);
+          const details = await beautyAPI.getProductDetails(product.id);
+          setDetailedProduct(details);
+        } catch (error) {
+          console.error("Failed to fetch product details", error);
+          // Keep initial product data as fallback
+          setDetailedProduct(product);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    fetchDetails();
+  }, [product]);
+
+  const displayProduct = detailedProduct || product;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -415,53 +510,77 @@ const EnhancedProductModal: React.FC<{
           <div className="w-12 h-1 bg-beauty-gray-700 rounded-full" />
         </div>
 
-        <div className="px-6 pb-8 overflow-y-auto max-h-[75vh]">
-          <h2 className="text-xl font-bold text-white mb-2">{product.name}</h2>
-          <p className="text-beauty-gray-400 mb-4">{product.brand} • {product.size}</p>
-          
-          <p className="text-2xl font-bold text-beauty-accent mb-6">${product.price}</p>
-
-          {/* Theory Section */}
-          <div className="bg-beauty-dark/50 rounded-xl p-4 mb-6">
-            <h3 className="text-white font-medium mb-2 flex items-center gap-2">
-              <span className="text-beauty-secondary">💡</span>
-              Why this product?
-            </h3>
-            <p className="text-beauty-gray-300 text-sm leading-relaxed">
-              {category.theory}
-            </p>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-96">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-beauty-accent"></div>
           </div>
+        ) : (
+          <div className="px-6 pb-8 overflow-y-auto max-h-[75vh]">
+            <h2 className="text-xl font-bold text-white mb-2">{displayProduct.product_name || displayProduct.name}</h2>
+            <p className="text-beauty-gray-400 mb-4">{displayProduct.brand} • {displayProduct.size}</p>
+            
+            <p className="text-2xl font-bold text-beauty-accent mb-6">${displayProduct.price}</p>
 
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-white font-medium mb-2">Key Ingredients</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.keyIngredients.map((ing) => (
-                  <span key={ing} className="px-3 py-1 bg-beauty-accent/20 text-beauty-accent rounded-full text-sm">
-                    {ing}
-                  </span>
-                ))}
+            {/* Theory Section */}
+            <div className="bg-beauty-dark/50 rounded-xl p-4 mb-6">
+              <h3 className="text-white font-medium mb-2 flex items-center gap-2">
+                <span className="text-beauty-secondary">💡</span>
+                Why this product?
+              </h3>
+              <p className="text-beauty-gray-300 text-sm leading-relaxed">
+                {category.theory}
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-white font-medium mb-2">Key Ingredients</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(displayProduct.key_ingredients || displayProduct.keyIngredients || []).map((ing: string) => (
+                    <span key={ing} className="px-3 py-1 bg-beauty-accent/20 text-beauty-accent rounded-full text-sm">
+                      {ing}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-white font-medium mb-2">Benefits</h3>
+                <ul className="space-y-1">
+                  {(displayProduct.benefits || []).map((benefit: string) => (
+                    <li key={benefit} className="text-beauty-gray-300 text-sm flex items-start gap-2">
+                      <span className="text-beauty-accent mt-0.5">•</span>
+                      {benefit}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Usage Instructions */}
+              {displayProduct.usage && (
+                <div>
+                  <h3 className="text-white font-medium mb-2">How to Use</h3>
+                  <div className="bg-beauty-dark/50 rounded-xl p-4 space-y-2">
+                    <p className="text-beauty-gray-300 text-sm">
+                      <span className="text-beauty-gray-400">When:</span> {displayProduct.usage.time} • {displayProduct.usage.frequency}
+                    </p>
+                    <p className="text-beauty-gray-300 text-sm">
+                      <span className="text-beauty-gray-400">Amount:</span> {displayProduct.usage.amount}
+                    </p>
+                    <p className="text-beauty-gray-300 text-sm">
+                      <span className="text-beauty-gray-400">Instructions:</span> {displayProduct.usage.instructions}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 pt-4">
+                <button className="btn-primary py-3">Buy Now</button>
+                <button className="btn-secondary py-3">Explore More</button>
               </div>
             </div>
-
-            <div>
-              <h3 className="text-white font-medium mb-2">Benefits</h3>
-              <ul className="space-y-1">
-                {product.benefits.map((benefit) => (
-                  <li key={benefit} className="text-beauty-gray-300 text-sm flex items-start gap-2">
-                    <span className="text-beauty-accent mt-0.5">•</span>
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <button className="btn-primary py-3">Buy Now</button>
-              <button className="btn-secondary py-3">Explore More</button>
-            </div>
           </div>
-        </div>
+        )}
       </motion.div>
     </motion.div>
   );
@@ -472,23 +591,96 @@ const ProgressTracker: React.FC = () => {
   const [routineData, setRoutineData] = useState<Record<string, boolean>>({});
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const [progressStats, setProgressStats] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const today = new Date().toDateString();
   
-  // Check if 7 days have passed (for demo, always show)
-  const daysUsed = 7; // In real app, calculate from first use date
+  // Fetch real progress data from API
+  useEffect(() => {
+    const fetchProgressData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get progress timeline from API
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const progressResponse = await beautyAPI.getProgressTimeline(startDate, endDate);
+        
+        // Transform API data to component format
+        const transformedData: Record<string, boolean> = {};
+        
+        progressResponse.daily_records.forEach((record: any) => {
+          if (record.morning) transformedData[`${record.date}-morning`] = true;
+          if (record.evening) transformedData[`${record.date}-evening`] = true;
+        });
+        
+        setRoutineData(transformedData);
+        setProgressStats(progressResponse.completion_stats);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch progress data:', err);
+        // Use fallback data on error
+        setProgressStats({
+          overall_percentage: 85,
+          current_streak: 3,
+          longest_streak: 7,
+          total_days: 30
+        });
+        setIsLoading(false);
+      }
+    };
 
-  const toggleRoutine = (type: 'morning' | 'evening') => {
+    fetchProgressData();
+  }, []);
+  
+  const daysUsed = progressStats?.total_days || 7;
+
+  const toggleRoutine = async (type: 'morning' | 'evening') => {
     const key = `${today}-${type}`;
+    const newValue = !routineData[key];
+    
+    // Update local state immediately for better UX
     setRoutineData(prev => ({
       ...prev,
-      [key]: !prev[key]
+      [key]: newValue
     }));
+    
+    // Save to API
+    try {
+      await beautyAPI.saveRoutineCompletion({
+        date: new Date().toISOString().split('T')[0],
+        routine_type: type,
+        completed: newValue,
+        products_used: [], // Could be enhanced to track specific products
+        notes: ''
+      });
+    } catch (err) {
+      console.error('Failed to save routine completion:', err);
+      // Revert local state if API call fails
+      setRoutineData(prev => ({
+        ...prev,
+        [key]: !newValue
+    }));
+    }
   };
 
-  const submitFeedback = (improvement: string) => {
+  const submitFeedback = async (improvement: string) => {
     setFeedbackGiven(true);
     setShowFeedback(false);
-    // Save feedback to backend
+    
+    // Save feedback to API
+    try {
+      await beautyAPI.submitProgressFeedback({
+        days_used: daysUsed,
+        overall_satisfaction: improvement,
+        skin_improvements: [], // Could be enhanced based on improvement
+        routine_adjustments_needed: improvement === 'Needs Adjustment',
+        comments: `User reported feeling ${improvement.toLowerCase()} after ${daysUsed} days`
+      });
+    } catch (err) {
+      console.error('Failed to submit feedback:', err);
+    }
   };
 
   const getLast7Days = () => {
@@ -526,7 +718,7 @@ const ProgressTracker: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="text-left">
                 <h3 className="font-medium text-white">Morning Routine</h3>
-                <p className="text-beauty-gray-400 text-sm">4 steps</p>
+                <p className="text-beauty-gray-400 text-sm">Morning routine</p>
               </div>
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                 routineData[`${today}-morning`]
@@ -554,7 +746,7 @@ const ProgressTracker: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="text-left">
                 <h3 className="font-medium text-white">Evening Routine</h3>
-                <p className="text-beauty-gray-400 text-sm">5 steps</p>
+                <p className="text-beauty-gray-400 text-sm">Evening routine</p>
               </div>
               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                 routineData[`${today}-evening`]
@@ -637,20 +829,26 @@ const ProgressTracker: React.FC = () => {
       {/* Stats */}
       <div className="p-4 bg-beauty-charcoal rounded-xl">
         <h3 className="text-white font-medium mb-3">Your Stats</h3>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin w-6 h-6 border-2 border-beauty-accent border-t-transparent rounded-full"></div>
+          </div>
+        ) : (
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-beauty-gray-400">Current Streak</span>
-            <span className="text-beauty-accent font-medium">3 days</span>
+              <span className="text-beauty-accent font-medium">{progressStats?.current_streak || 0} days</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-beauty-gray-400">This Week</span>
-            <span className="text-white font-medium">85% completed</span>
+              <span className="text-beauty-gray-400">Overall Progress</span>
+              <span className="text-white font-medium">{progressStats?.overall_percentage || 0}% completed</span>
           </div>
           <div className="flex justify-between">
             <span className="text-beauty-gray-400">Best Streak</span>
-            <span className="text-beauty-secondary font-medium">7 days</span>
+              <span className="text-beauty-secondary font-medium">{progressStats?.longest_streak || 0} days</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

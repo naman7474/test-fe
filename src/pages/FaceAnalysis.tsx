@@ -39,11 +39,11 @@ const FaceAnalysis: React.FC = () => {
         // Step 1: Upload photo
         const uploadResponse = await beautyAPI.uploadPhoto(uploadedPhoto);
         
-        if (!uploadResponse.success) {
+        if (!uploadResponse.session_id) {
           throw new Error('Failed to upload photo. Please try again.');
         }
 
-        const sessionId = uploadResponse.data.session_id;
+        const sessionId = uploadResponse.session_id;
         setCurrentSessionId(sessionId);
 
         // Show enhanced loading screen after initial upload
@@ -61,13 +61,13 @@ const FaceAnalysis: React.FC = () => {
             let progress = 0;
             let currentStep = 'Initializing...';
             
-            if (statusResponse.data.status === 'pending') {
+            if (statusResponse.status === 'queued') {
               progress = 10;
               currentStep = 'Preparing analysis...';
-            } else if (statusResponse.data.status === 'processing') {
+            } else if (statusResponse.status === 'processing') {
               progress = 50;
               currentStep = 'Analyzing facial features...';
-            } else if (statusResponse.data.status === 'completed') {
+            } else if (statusResponse.status === 'completed') {
               progress = 100;
               currentStep = 'Analysis complete!';
             }
@@ -75,7 +75,7 @@ const FaceAnalysis: React.FC = () => {
             setProgress(progress);
             setCurrentStep(currentStep);
             
-            if (statusResponse.data.status === 'completed') {
+            if (statusResponse.status === 'completed') {
               // Get recommendations after analysis is complete
               try {
                 setCurrentStep('Generating personalized recommendations...');
@@ -103,7 +103,7 @@ const FaceAnalysis: React.FC = () => {
                   throw new Error('Failed to generate recommendations after multiple attempts. Please try again.');
                 }
               }
-            } else if (statusResponse.data.status === 'failed') {
+            } else if (statusResponse.status === 'failed') {
               throw new Error('Analysis failed. Please try uploading a clearer photo.');
             } else {
               // Continue polling

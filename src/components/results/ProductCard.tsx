@@ -15,7 +15,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onSelect,
   onViewDetails,
 }) => {
-  const { product, reason, priority } = recommendation;
+  const { product, reason, priority = 999 } = recommendation;
 
   return (
     <motion.div

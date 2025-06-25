@@ -1,6 +1,7 @@
 // src/components/results/ScheduleModal.tsx
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Product } from '../../types';
 
 interface ScheduleStep {
   step: number;
@@ -12,70 +13,69 @@ interface ScheduleStep {
 interface ScheduleModalProps {
   type: 'morning' | 'evening';
   onClose: () => void;
+  routineProducts?: Product[]; // Real routine data from API
 }
 
-const ScheduleModal: React.FC<ScheduleModalProps> = ({ type, onClose }) => {
-  const morningSteps: ScheduleStep[] = [
-    {
-      step: 1,
-      product: 'Gentle Foam Cleanser',
-      time: '30 sec',
-      instructions: 'Wet face, massage cleanser in circular motions, rinse with lukewarm water'
-    },
-    {
-      step: 2,
-      product: 'Brightening C+ Serum',
-      time: '1 min',
-      instructions: 'Apply 3-4 drops to face and neck, pat gently until absorbed'
-    },
-    {
-      step: 3,
-      product: 'Hydra-Balance Gel',
-      time: '30 sec',
-      instructions: 'Apply 2 pumps evenly across face and neck'
-    },
-    {
-      step: 4,
-      product: 'Invisible Shield SPF 50',
-      time: '1 min',
-      instructions: 'Apply liberally 15 minutes before sun exposure'
+const ScheduleModal: React.FC<ScheduleModalProps> = ({ type, onClose, routineProducts = [] }) => {
+  // Transform API products into schedule steps
+  const createStepsFromProducts = (products: Product[], routineType: 'morning' | 'evening'): ScheduleStep[] => {
+    if (products.length === 0) {
+      // Fallback to basic routine if no products provided
+      const fallbackSteps: ScheduleStep[] = [
+        {
+          step: 1,
+          product: 'Cleanser',
+          time: '1 min',
+          instructions: 'Gently cleanse face with lukewarm water'
+        },
+        {
+          step: 2,
+          product: 'Moisturizer',
+          time: '30 sec',
+          instructions: 'Apply evenly to face and neck'
+        }
+      ];
+      
+      if (routineType === 'morning') {
+        fallbackSteps.push({
+          step: 3,
+          product: 'Sunscreen',
+          time: '1 min',
+          instructions: 'Apply liberally 15 minutes before sun exposure'
+        });
+      }
+      
+      return fallbackSteps;
     }
-  ];
 
-  const eveningSteps: ScheduleStep[] = [
-    {
-      step: 1,
-      product: 'Gentle Foam Cleanser',
-      time: '1 min',
-      instructions: 'Double cleanse if wearing makeup, massage thoroughly'
-    },
-    {
-      step: 2,
-      product: 'Exfoliating Toner',
-      time: '30 sec',
-      instructions: 'Apply with cotton pad, avoid eye area'
-    },
-    {
-      step: 3,
-      product: 'Brightening C+ Serum',
-      time: '1 min',
-      instructions: 'Apply to clean skin, focus on dark spots'
-    },
-    {
-      step: 4,
-      product: 'Hydra-Balance Gel',
-      time: '30 sec',
-      instructions: 'Apply generously for overnight hydration'
-    },
-    {
-      step: 5,
-      product: 'Eye Cream',
-      time: '30 sec',
-      instructions: 'Gently pat around eye area with ring finger'
+    return products.map((product, index) => ({
+      step: index + 1,
+      product: product.product_name || product.name,
+      time: getEstimatedTime(product.product_type),
+      instructions: product.usage?.instructions || `Apply ${product.product_name || product.name} as directed`
+    }));
+  };
+
+  const getEstimatedTime = (productType: string): string => {
+    switch (productType?.toLowerCase()) {
+      case 'cleanser':
+        return '1 min';
+      case 'toner':
+        return '30 sec';
+      case 'serum':
+        return '1 min';
+      case 'moisturizer':
+        return '30 sec';
+      case 'sunscreen':
+        return '1 min';
+      case 'mask':
+        return '10 min';
+      default:
+        return '30 sec';
     }
-  ];
+  };
 
-  const steps = type === 'morning' ? morningSteps : eveningSteps;
+  const steps = createStepsFromProducts(routineProducts, type);
   const totalTime = steps.reduce((acc, step) => {
     const minutes = step.time.includes('min') ? parseInt(step.time) : 0.5;
     return acc + minutes;
