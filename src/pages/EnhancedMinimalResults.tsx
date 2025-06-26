@@ -65,10 +65,26 @@ const EnhancedMinimalResults: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [skinAnalysisSummary, setSkinAnalysisSummary] = useState<any>(null);
   const [routineData, setRoutineData] = useState<{morning: Product[], evening: Product[]}>({morning: [], evening: []});
+  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
 
   const userName = localStorage.getItem('userName') || 'Beautiful';
-  const profileCompletionPercentage = getProfileCompletionPercentage(userProfile);
   const isProfileComplete = profileCompletionPercentage === 100;
+
+  // Fetch profile completion from API
+  useEffect(() => {
+    const fetchProfileCompletion = async () => {
+      try {
+        const onboardingData = await beautyAPI.getOnboardingProgress();
+        setProfileCompletionPercentage(onboardingData.steps.profile.percentage);
+      } catch (err) {
+        console.error('Failed to fetch profile completion:', err);
+        // Fallback to local calculation if API fails
+        setProfileCompletionPercentage(0);
+      }
+    };
+
+    fetchProfileCompletion();
+  }, []);
 
   // Transform API recommendations into category format
   const transformToCategories = (apiResult: AnalysisResult): CategoryProducts[] => {
@@ -166,7 +182,7 @@ const EnhancedMinimalResults: React.FC = () => {
     };
 
     fetchRecommendations();
-  }, [analysisResult, setAnalysisResult, navigate]);
+  }, [navigate]); // Remove analysisResult and setAnalysisResult to prevent infinite loops
 
   const handleCategoryClick = (category: CategoryProducts) => {
     setSelectedCategory(category);
@@ -326,10 +342,9 @@ const EnhancedMinimalResults: React.FC = () => {
 
       {/* Modals */}
       <AnimatePresence>
-        {showProductModal && selectedProduct && selectedCategory && (
+        {showProductModal && selectedProduct && (
           <EnhancedProductModal
             product={selectedProduct}
-            category={selectedCategory}
             onClose={() => {
               setShowProductModal(false);
               setSelectedProduct(null);
@@ -414,12 +429,30 @@ const HomeTab: React.FC<{
               <div className="relative flex items-center justify-between">
                 <div className="flex-1">
                   <p className="text-beauty-gray-400 text-sm mb-1">{category.category}</p>
-                  <h3 className="text-white font-medium">{category.bestProduct.name}</h3>
+                  <h3 className="text-white font-medium">{category.bestProduct.product_name || category.bestProduct.name}</h3>
                   <p className="text-beauty-gray-500 text-sm mt-1">{category.bestProduct.brand}</p>
+                  {/* Show key ingredients if available */}
+                  {(category.bestProduct.key_ingredients || category.bestProduct.keyIngredients)?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {(category.bestProduct.key_ingredients || category.bestProduct.keyIngredients).slice(0, 2).map((ingredient: string, idx: number) => (
+                        <span key={idx} className="text-xs px-2 py-1 bg-beauty-accent/20 text-beauty-accent rounded-full">
+                          {ingredient}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
-                  <p className="text-beauty-accent font-semibold">${category.bestProduct.price}</p>
-                  <p className="text-xs text-beauty-gray-500 mt-1">95% match</p>
+                  <p className="text-beauty-accent font-semibold">${category.bestProduct.price?.toFixed(2) || 'N/A'}</p>
+                  <p className="text-xs text-beauty-gray-500 mt-1">{Math.round(category.bestProduct.match_score || category.bestProduct.matchScore || 95)}% match</p>
+                  {category.bestProduct.rating && category.bestProduct.rating > 0 && (
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-xs text-beauty-gray-500">★ {category.bestProduct.rating.toFixed(1)}</span>
+                      {category.bestProduct.reviews && category.bestProduct.reviews > 0 && (
+                        <span className="text-xs text-beauty-gray-600">({category.bestProduct.reviews})</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -458,131 +491,421 @@ const HomeTab: React.FC<{
   );
 };
 
-// Enhanced Product Modal with Theory
-const EnhancedProductModal: React.FC<{
-  product: Product;
-  category: CategoryProducts;
-  onClose: () => void;
-}> = ({ product, category, onClose }) => {
-  const [detailedProduct, setDetailedProduct] = useState<Product | null>(product);
-  const [isLoading, setIsLoading] = useState(true);
+// Enhanced Product Modal with real product data and expected results
+const EnhancedProductModal = ({ product, onClose }: { product: any; onClose: () => void }) => {
+  const [productDetails, setProductDetails] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      if (product && product.id) {
-        try {
-          setIsLoading(true);
-          const details = await beautyAPI.getProductDetails(product.id);
-          setDetailedProduct(details);
-        } catch (error) {
-          console.error("Failed to fetch product details", error);
-          // Keep initial product data as fallback
-          setDetailedProduct(product);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setIsLoading(false);
+    const fetchProductDetails = async () => {
+      if (!product?.product_id) {
+        setError('Product ID not available');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('Fetching product details for ID:', product.product_id);
+        const details = await beautyAPI.getProductDetails(product.product_id);
+        console.log('Product details fetched:', details);
+        setProductDetails(details);
+      } catch (err) {
+        console.error('Error fetching product details:', err);
+        setError('Failed to load product details');
+      } finally {
+        setLoading(false);
       }
     };
-    fetchDetails();
-  }, [product]);
 
-  const displayProduct = detailedProduct || product;
+    fetchProductDetails();
+  }, [product?.product_id]);
+
+  const displayProduct = productDetails || product;
+
+  // Generate expected results based on product type and ingredients
+  const getExpectedResults = () => {
+    const productType = displayProduct.product_type?.toLowerCase();
+    const ingredients = displayProduct.key_ingredients || displayProduct.keyIngredients || [];
+    const concerns = displayProduct.recommendation_reason?.toLowerCase() || '';
+    
+    const results = [];
+    
+    // Results based on product type
+    switch (productType) {
+      case 'cleanser':
+        results.push('Cleaner, clearer skin');
+        results.push('Reduced excess oil');
+        if (concerns.includes('acne')) results.push('Fewer breakouts');
+        break;
+      case 'serum':
+        if (ingredients.some((ing: string) => ing.toLowerCase().includes('niacinamide'))) {
+          results.push('Smaller-looking pore appearance');
+          results.push('Balanced oil production');
+        }
+        if (ingredients.some((ing: string) => ing.toLowerCase().includes('vitamin c'))) {
+          results.push('Brighter, more radiant skin');
+          results.push('Reduced dark spots');
+        }
+        if (ingredients.some((ing: string) => ing.toLowerCase().includes('hyaluronic'))) {
+          results.push('Improved skin hydration');
+          results.push('Plumper, smoother skin');
+        }
+        break;
+      case 'moisturizer':
+        results.push('Softer, smoother skin');
+        results.push('Improved skin barrier');
+        if (ingredients.some((ing: string) => ing.toLowerCase().includes('retinol'))) {
+          results.push('Reduced fine lines');
+          results.push('Improved skin texture');
+        }
+        break;
+      case 'sunscreen':
+        results.push('Protection from UV damage');
+        results.push('Prevention of premature aging');
+        results.push('Reduced risk of dark spots');
+        break;
+      case 'mask':
+        results.push('Deep cleansing');
+        results.push('Smoother skin texture');
+        if (concerns.includes('oil')) results.push('Reduced oiliness');
+        break;
+      default:
+        results.push('Improved skin health');
+        results.push('Enhanced skincare routine');
+    }
+    
+    // Add timeline
+    return {
+      immediate: results.slice(0, 2),
+      short_term: results.slice(2, 4).length > 0 ? results.slice(2, 4) : ['Improved skin texture', 'Enhanced skin appearance'],
+      long_term: ['Healthier, more balanced skin', 'Sustained skin improvement']
+    };
+  };
+
+  const expectedResults = getExpectedResults();
+  
+  // Parse images if they're in string format
+  const getProductImages = () => {
+    if (productDetails?.images) {
+      try {
+        const images = typeof productDetails.images === 'string' 
+          ? JSON.parse(productDetails.images) 
+          : productDetails.images;
+        return Array.isArray(images) ? images : [images];
+      } catch {
+        return [];
+      }
+    }
+    return displayProduct?.image_url ? [displayProduct.image_url] : [];
+  };
+
+  const productImages = getProductImages();
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-beauty-black/80 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
-        transition={{ type: 'spring', damping: 30 }}
-        onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-0 left-0 right-0 bg-beauty-charcoal rounded-t-3xl max-h-[85vh] overflow-hidden"
-      >
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-12 h-1 bg-beauty-gray-700 rounded-full" />
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-beauty-gray-900 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-6 border-b border-beauty-gray-700">
+          <h3 className="text-lg font-semibold text-white">Product Details</h3>
+          <button
+            onClick={onClose}
+            className="text-beauty-gray-400 hover:text-white transition-colors"
+          >
+                         ✕
+          </button>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-96">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-beauty-accent"></div>
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-beauty-accent"></div>
+            <span className="ml-3 text-white">Loading product details...</span>
+          </div>
+        ) : error ? (
+          <div className="p-6">
+            <div className="text-red-400 mb-4">{error}</div>
+            <div className="text-white">
+              <h2 className="text-xl font-bold mb-2">{product.product_name}</h2>
+              <p className="text-beauty-gray-400 mb-4">{product.brand} • {product.product_type}</p>
+              <p className="text-2xl font-bold text-beauty-accent mb-6">₹{product.price?.toFixed(2) || 'Price not available'}</p>
+              
+              {product.key_ingredients?.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">Key Ingredients</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {product.key_ingredients.map((ingredient: string, idx: number) => (
+                      <span key={idx} className="bg-beauty-gray-800 text-beauty-gray-300 px-3 py-1 rounded-full text-sm">
+                        {ingredient}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {product.recommendation_reason && (
+                <div className="mb-4">
+                  <h4 className="text-white font-medium mb-2">Why This Product?</h4>
+                  <p className="text-beauty-gray-300">{product.recommendation_reason}</p>
+                </div>
+              )}
+              
+              {product.usage_instructions && (
+                <div className="mb-4">
+                  <h4 className="text-white font-medium mb-2">How to Use</h4>
+                  <p className="text-beauty-gray-300">{product.usage_instructions}</p>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="px-6 pb-8 overflow-y-auto max-h-[75vh]">
-            <h2 className="text-xl font-bold text-white mb-2">{displayProduct.product_name || displayProduct.name}</h2>
-            <p className="text-beauty-gray-400 mb-4">{displayProduct.brand} • {displayProduct.size}</p>
-            
-            <p className="text-2xl font-bold text-beauty-accent mb-6">${displayProduct.price}</p>
-
-            {/* Theory Section */}
-            <div className="bg-beauty-dark/50 rounded-xl p-4 mb-6">
-              <h3 className="text-white font-medium mb-2 flex items-center gap-2">
-                <span className="text-beauty-secondary">💡</span>
-                Why this product?
-              </h3>
-              <p className="text-beauty-gray-300 text-sm leading-relaxed">
-                {category.theory}
-              </p>
-            </div>
-
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-white font-medium mb-2">Key Ingredients</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(displayProduct.key_ingredients || displayProduct.keyIngredients || []).map((ing: string) => (
-                    <span key={ing} className="px-3 py-1 bg-beauty-accent/20 text-beauty-accent rounded-full text-sm">
-                      {ing}
-                    </span>
-                  ))}
+          <div className="overflow-y-auto max-h-[85vh]">
+            {/* Product Images - Top Section with Horizontal Scroll */}
+            {productImages.length > 0 && (
+              <div className="relative bg-beauty-gray-800">
+                                  <div className="overflow-x-auto no-scrollbar">
+                  <div className="flex gap-2 p-4" style={{ width: `${productImages.length * 280}px` }}>
+                    {productImages.map((imageUrl: string, idx: number) => (
+                      <div key={idx} className="flex-shrink-0 w-64 h-64 bg-beauty-gray-700 rounded-lg overflow-hidden">
+                        <img 
+                          src={imageUrl} 
+                          alt={`${displayProduct.product_name} ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                {/* Scroll indicator */}
+                {productImages.length > 1 && (
+                  <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                    {productImages.length} photos
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Product Info Section */}
+            <div className="px-6 py-6">
+              <h2 className="text-xl font-bold text-white mb-2">{displayProduct.product_name}</h2>
+              <p className="text-beauty-gray-400 mb-4">
+                {displayProduct.brand_name || displayProduct.brand} 
+                {displayProduct.size_qty && ` • ${displayProduct.size_qty}`}
+              </p>
+              
+              {/* Price display */}
+              <div className="mb-6">
+                {productDetails?.price_sale ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-bold text-beauty-accent">₹{productDetails.price_sale.toFixed(2)}</span>
+                    {productDetails.price_mrp && productDetails.price_mrp !== productDetails.price_sale && (
+                      <span className="text-lg text-beauty-gray-500 line-through">₹{productDetails.price_mrp.toFixed(2)}</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-2xl font-bold text-beauty-accent">₹{displayProduct.price?.toFixed(2) || 'Price not available'}</span>
+                )}
               </div>
 
-              <div>
-                <h3 className="text-white font-medium mb-2">Benefits</h3>
-                <ul className="space-y-1">
-                  {(displayProduct.benefits || []).map((benefit: string) => (
-                    <li key={benefit} className="text-beauty-gray-300 text-sm flex items-start gap-2">
-                      <span className="text-beauty-accent mt-0.5">•</span>
-                      {benefit}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {/* Buy Now Button */}
+              {(productDetails?.source_url || displayProduct.source_url) && (
+                <div className="mb-6">
+                  <button
+                    onClick={() => {
+                      const url = productDetails?.source_url || displayProduct.source_url;
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="w-full bg-beauty-accent hover:bg-beauty-accent/90 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    <span>Buy Now</span>
+                    <span className="text-sm">→</span>
+                  </button>
+                </div>
+              )}
 
-              {/* Usage Instructions */}
-              {displayProduct.usage && (
-                <div>
-                  <h3 className="text-white font-medium mb-2">How to Use</h3>
-                  <div className="bg-beauty-dark/50 rounded-xl p-4 space-y-2">
-                    <p className="text-beauty-gray-300 text-sm">
-                      <span className="text-beauty-gray-400">When:</span> {displayProduct.usage.time} • {displayProduct.usage.frequency}
-                    </p>
-                    <p className="text-beauty-gray-300 text-sm">
-                      <span className="text-beauty-gray-400">Amount:</span> {displayProduct.usage.amount}
-                    </p>
-                    <p className="text-beauty-gray-300 text-sm">
-                      <span className="text-beauty-gray-400">Instructions:</span> {displayProduct.usage.instructions}
-                    </p>
+              {/* Why This Product is Recommended - Highlighted Section */}
+              {displayProduct.recommendation_reason && (
+                <div className="mb-6">
+                  <div className="bg-gradient-to-r from-beauty-accent/10 to-beauty-secondary/10 border border-beauty-accent/20 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="w-8 h-8 bg-beauty-accent/20 rounded-full flex items-center justify-center">
+                          <span className="text-beauty-accent text-lg">💡</span>
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-beauty-accent font-semibold mb-2 text-lg">Why This Product is Perfect for You</h4>
+                        <p className="text-white leading-relaxed">{displayProduct.recommendation_reason}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 pt-4">
-                <button className="btn-primary py-3">Buy Now</button>
-                <button className="btn-secondary py-3">Explore More</button>
+              {/* Expected Results Section */}
+              <div className="mb-6">
+                <div className="bg-gradient-to-r from-beauty-secondary/10 to-purple-500/10 border border-beauty-secondary/20 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-8 h-8 bg-beauty-secondary/20 rounded-full flex items-center justify-center">
+                        <span className="text-beauty-secondary text-lg">✨</span>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-beauty-secondary font-semibold mb-3 text-lg">Expected Results</h4>
+                      
+                      <div className="space-y-4">
+                        {/* Immediate Results */}
+                        <div>
+                          <h5 className="text-white font-medium mb-2 text-sm">Immediate (1-3 days)</h5>
+                          <div className="space-y-1">
+                            {expectedResults.immediate.map((result: string, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-beauty-secondary text-xs">●</span>
+                                <span className="text-beauty-gray-300 text-sm">{result}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Short-term Results */}
+                        <div>
+                          <h5 className="text-white font-medium mb-2 text-sm">Short-term (1-2 weeks)</h5>
+                          <div className="space-y-1">
+                            {expectedResults.short_term.map((result: string, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-beauty-secondary text-xs">●</span>
+                                <span className="text-beauty-gray-300 text-sm">{result}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Long-term Results */}
+                        <div>
+                          <h5 className="text-white font-medium mb-2 text-sm">Long-term (4-8 weeks)</h5>
+                          <div className="space-y-1">
+                            {expectedResults.long_term.map((result: string, idx: number) => (
+                              <div key={idx} className="flex items-center gap-2">
+                                <span className="text-beauty-secondary text-xs">●</span>
+                                <span className="text-beauty-gray-300 text-sm">{result}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <p className="text-beauty-gray-500 text-xs mt-4 italic">
+                        Results may vary based on individual skin type and consistency of use
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Product Description */}
+              {productDetails?.description_html && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">About This Product</h4>
+                  <div 
+                    className="text-beauty-gray-300 leading-relaxed bg-beauty-gray-900/30 rounded-lg p-4"
+                    dangerouslySetInnerHTML={{ __html: productDetails.description_html }}
+                  />
+                </div>
+              )}
+
+              {/* Benefits */}
+              {productDetails?.benefits_extracted?.benefits_list?.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">Benefits</h4>
+                  <div className="space-y-2">
+                    {productDetails.benefits_extracted.benefits_list.map((benefit: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="text-green-400 mt-0.5 flex-shrink-0">✓</span>
+                        <span className="text-beauty-gray-300">{benefit}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Key Ingredients */}
+              {(productDetails?.ingredients_extracted?.ingredients_list || displayProduct.key_ingredients)?.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">Key Ingredients</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {(productDetails?.ingredients_extracted?.ingredients_list || displayProduct.key_ingredients || []).map((ingredient: string, idx: number) => (
+                      <span key={idx} className="bg-beauty-gray-800 text-beauty-gray-300 px-3 py-1 rounded-full text-sm">
+                        {ingredient}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Full Ingredients */}
+              {productDetails?.ingredients_raw && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">Full Ingredients</h4>
+                  <p className="text-beauty-gray-300 text-sm leading-relaxed">
+                    {productDetails.ingredients_raw}
+                  </p>
+                </div>
+              )}
+
+              {/* Usage Instructions */}
+              {(productDetails?.usage_instructions || displayProduct.usage_instructions) && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">How to Use</h4>
+                  <p className="text-beauty-gray-300">
+                    {productDetails?.usage_instructions || displayProduct.usage_instructions}
+                  </p>
+                </div>
+              )}
+
+              
+
+              {/* Ratings */}
+              {(productDetails?.average_rating > 0 || productDetails?.review_count > 0) && (
+                <div className="mb-6">
+                  <h4 className="text-white font-medium mb-3">Ratings & Reviews</h4>
+                  <div className="flex items-center gap-4">
+                    {productDetails.average_rating > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-400">★</span>
+                        <span className="text-white">{productDetails.average_rating.toFixed(1)}</span>
+                      </div>
+                    )}
+                    {productDetails.review_count > 0 && (
+                      <span className="text-beauty-gray-400">({productDetails.review_count} reviews)</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Match Score */}
+              {displayProduct.match_score && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-white font-medium">Match Score</span>
+                    <span className="text-beauty-accent font-bold">{displayProduct.match_score}%</span>
+                  </div>
+                  <div className="w-full bg-beauty-gray-700 rounded-full h-2">
+                    <div 
+                      className="bg-beauty-accent h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${displayProduct.match_score}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 };
 

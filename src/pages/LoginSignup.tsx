@@ -67,32 +67,8 @@ const LoginSignup: React.FC = () => {
         localStorage.setItem('userName', userName);
         updateUserProfile(user);
         
-        // Check onboarding status for existing users
-        try {
-          const onboardingStatus = await beautyAPI.getOnboardingProgress();
-          
-          // Update store with user status
-          setUserStatus(
-            onboardingStatus.steps.profile.complete && onboardingStatus.steps.photo.uploaded,
-            onboardingStatus.steps.recommendations.generated
-          );
-          
-          // Navigate based on user status
-          if (onboardingStatus.steps.recommendations.generated) {
-            // User has completed everything, go to results
-            navigate('/results');
-          } else if (onboardingStatus.steps.profile.complete) {
-            // Profile complete but no photo/recommendations, go to photo upload
-            navigate('/onboarding', { state: { step: 'photo' } });
-          } else {
-            // New user or incomplete profile, start onboarding
-            navigate('/onboarding');
-          }
-        } catch (error) {
-          console.error('Failed to check onboarding status:', error);
-          // Default to landing page if status check fails
-          navigate('/');
-        }
+        // Always redirect to onboarding after login
+        navigate('/onboarding');
       } else {
         // Signup validation
         if (!firstName || !lastName || !email || !password) {

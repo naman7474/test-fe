@@ -167,3 +167,101 @@ html {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Futuristic Landing Page Styles */
+/* Conic gradient support */
+@supports (background: conic-gradient(from 0deg, red, blue)) {
+  .bg-gradient-conic {
+    background: conic-gradient(
+      from 0deg at 50% 50%,
+      var(--tw-gradient-from),
+      var(--tw-gradient-via),
+      var(--tw-gradient-to)
+    );
+  }
+}
+
+/* Holographic text effect enhancement */
+.holographic-text {
+  background: linear-gradient(
+    45deg,
+    #60a5fa,
+    #c084fc,
+    #f472b6,
+    #60a5fa
+  );
+  background-size: 200% 100%;
+  animation: holographic 3s ease-in-out infinite;
+}
+
+@keyframes holographic {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glitch effect */
+@keyframes glitch {
+  0%, 100% {
+    transform: translate(0);
+    filter: hue-rotate(0deg);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+    filter: hue-rotate(90deg);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+    filter: hue-rotate(180deg);
+  }
+  60% {
+    transform: translate(2px, 2px);
+    filter: hue-rotate(270deg);
+  }
+  80% {
+    transform: translate(2px, -2px);
+    filter: hue-rotate(360deg);
+  }
+}
+
+.glitch {
+  animation: glitch 0.3s ease-in-out infinite alternate;
+}
+
+/* Font display for futuristic look */
+.font-display {
+  font-family: 'Space Grotesk', monospace;
+  letter-spacing: -0.02em;
+}
+
+/* Liquid button morphing animation */
+@keyframes morph {
+  0%, 100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  50% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+}
+
+/* Enhance existing text gradient */
+.text-gradient {
+  @apply bg-gradient-to-r from-beauty-accent via-purple-400 to-beauty-secondary bg-clip-text text-transparent;
+  background-size: 200% auto;
+  animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}

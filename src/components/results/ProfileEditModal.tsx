@@ -13,23 +13,35 @@ const ProfileEditModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [hasChanges, setHasChanges] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile>(userProfile);
   const [isLoading, setIsLoading] = useState(true);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        const fullProfile = await beautyAPI.getCompleteProfile();
+        
+        // Fetch both complete profile and onboarding progress
+        const [fullProfile, onboardingData] = await Promise.all([
+          beautyAPI.getCompleteProfile(),
+          beautyAPI.getOnboardingProgress()
+        ]);
+        
+        console.log('Fetched profile data:', fullProfile);
+        console.log('Profile sections:', Object.keys(fullProfile));
+        
         setEditedProfile(fullProfile);
         updateUserProfile(fullProfile); // Update store with full profile
+        setCompletionPercentage(onboardingData.steps.profile.percentage);
       } catch (error) {
         console.error("Failed to fetch complete profile", error);
         // Keep using profile from store as fallback
+        setCompletionPercentage(getProfileCompletionPercentage(userProfile));
       } finally {
         setIsLoading(false);
       }
     };
     fetchProfile();
-  }, [updateUserProfile]);
+  }, []); // Empty dependency array - only run once on mount
 
   const sections = [
     { key: 'skin', title: 'Skin Profile', icon: '🧴' },
@@ -40,14 +52,17 @@ const ProfileEditModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     { key: 'preferences', title: 'Preferences', icon: '💰' }
   ];
 
-  const completionPercentage = getProfileCompletionPercentage(userProfile);
-
   const handleFieldChange = (section: string, fieldName: string, value: any) => {
     setEditedProfile((prev: UserProfile) => {
+      // Make a deep copy to avoid mutation
       const prevSection = prev[section as keyof typeof prev];
-      const updatedSection = typeof prevSection === 'object' && prevSection !== null && !Array.isArray(prevSection) && !(prevSection instanceof Date)
-        ? { ...prevSection, [fieldName]: value }
-        : { [fieldName]: value };
+      let updatedSection;
+      
+      if (typeof prevSection === 'object' && prevSection !== null && !Array.isArray(prevSection) && !(prevSection instanceof Date)) {
+        updatedSection = { ...prevSection, [fieldName]: value };
+      } else {
+        updatedSection = { [fieldName]: value };
+      }
       
       return {
         ...prev,
@@ -82,6 +97,14 @@ const ProfileEditModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             // Continue with other sections even if one fails
           }
         }
+      }
+      
+      // Refresh completion percentage after save
+      try {
+        const onboardingData = await beautyAPI.getOnboardingProgress();
+        setCompletionPercentage(onboardingData.steps.profile.percentage);
+      } catch (error) {
+        console.error('Failed to refresh completion percentage:', error);
       }
       
       onClose();

@@ -7,7 +7,7 @@ import beautyAPI from './services/api';
 
 // Import components
 import LoginSignup from './pages/LoginSignup';
-import Landing from './pages/Landing';
+import FuturisticLanding from './pages/Landing';
 import Onboarding from './pages/Onboarding';
 import FaceAnalysis from './pages/FaceAnalysis';
 import EnhancedMinimalResults from './pages/EnhancedMinimalResults';
@@ -36,10 +36,8 @@ const AppInitializer: React.FC<{ children: React.ReactNode }> = ({ children }) =
             onboardingStatus.steps.recommendations.generated
           );
           
-          // Redirect returning users to results if they have recommendations
-          if (onboardingStatus.steps.recommendations.generated) {
-            navigate('/results', { replace: true });
-          }
+          // Remove automatic redirect - let user navigate manually
+          // This allows users to see the landing page and other pages
         } catch (error) {
           console.error('Failed to check user status:', error);
           // If error, let normal flow continue
@@ -104,15 +102,13 @@ function App() {
           </AnimatePresence>
 
           <Routes>
-            {/* Public route */}
-            <Route path="/login" element={<LoginSignup />} />
+            {/* Public routes */}
+            <Route path="/" element={<FuturisticLanding />} />
+            <Route path="/login" element={
+              localStorage.getItem('authToken') ? <Navigate to="/onboarding" replace /> : <LoginSignup />
+            } />
             
             {/* Protected routes */}
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Landing />
-              </ProtectedRoute>
-            } />
             <Route path="/onboarding" element={
               <ProtectedRoute>
                 <Onboarding />
